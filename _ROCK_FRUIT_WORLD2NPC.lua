@@ -14,6 +14,7 @@ local WORLD2 = {
 	"Cat OIIA",
 	"Grass Man",
 	"Horse Man",
+	"Shampoo",
 	"Shark Monster",
 	"Sunflower Man",
 	"SuperIdol",
