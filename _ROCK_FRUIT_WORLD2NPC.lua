@@ -17,6 +17,7 @@ local WORLD2 = {
 	"Shampoo",
 	"Shark Monster",
 	"Sunflower Man",
+	"Villain",
 	"SuperIdol",
 	"Witch Cult"
 }
