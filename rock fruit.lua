@@ -294,7 +294,7 @@ function ClientUtils:AutoEquip(Value)
 end
 
 local Fluent
-Fluent = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/4ce60ba116cb52855f282a7f50b1866b/raw/46a055c61eb48d2ab990923121f81f57cf15c04c/Fluent_Edited.luau"))();
+Fluent = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/4ce60ba116cb52855f282a7f50b1866b/raw/864c18d9319cde98eac7a570cbcef1df857fe217/Fluent_Edited.luau"))();
 SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 local Options = Fluent.Options
