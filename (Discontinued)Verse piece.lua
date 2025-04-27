@@ -639,9 +639,7 @@ function Kurone:IsRaidBossSpawn()
 end
 
 --! Fields
-local Fluent = nil
--- Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))();
-Fluent = loadstring(game:HttpGet("https://gist.github.com/CylciaUwU/4ce60ba116cb52855f282a7f50b1866b/raw/f7f2f59272145614852f28d5659e1b7e4223518a/Fluent_Edited.luau"))();
+Fluent = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/4ce60ba116cb52855f282a7f50b1866b/raw/864c18d9319cde98eac7a570cbcef1df857fe217/Fluent_Edited.luau"))();
 SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 local Options = Fluent.Options
