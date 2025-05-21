@@ -1,11 +1,14 @@
+repeat task.wait() until game:IsLoaded()
+
 if shared.settings then return end
 
 shared.settings = {
     AutoSellWhenMax = false,
-    AutoSell = true,
+    AutoSell = false,
     KillFarmer = true,
     InstPrompt  = true,
     IsFarmerNil = nil,
+    Delete_Coin = true,
 
     AutoCollect = {
         Plants = true
@@ -57,7 +60,7 @@ local function GetSellWhenMaxCap()
     local AnchorPoint = Crate["AnchorPoint"]
     local Capacity = Crate["MaxCapacity"].Value;
 
-    --// TODO use for loop :c
+    --// TODO use forloop :c
 
     local GetCapText = AnchorPoint["CapacityBillboard"]["CapacityText"].Text
     local getHalfText = string.split(GetCapText,"/")
@@ -98,6 +101,17 @@ spawn(function()
     end
 end)
 
+task.spawn(function()
+    local _s,_f = pcall(function()
+        loadstring([[
+            game:GetService("Players").LocalPlayer.PlayerScripts.Coins.Enabled = false
+            game:GetService("ReplicatedStorage").Assets:FindFirstChild("Coins"):Destroy()
+            game:GetService("ReplicatedStorage").Assets:FindFirstChild("Coin"):Destroy()
+        ]])()
+    end)
+    assert(_s,debugprint("Destroy All Coins"))
+end)
+
 local CoreLooper = getgenv().CoreLooper
 CoreLooper = Heartbeat:Connect(function()
     pcall(function()
@@ -110,10 +124,11 @@ CoreLooper = Heartbeat:Connect(function()
 
             if HumnoidFarmer.PlatformStand ~= true then
                 HumnoidFarmer.PlatformStand = true
+                sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
             end
             HumnoidFarmer:RemoveAccessories()
             if Animator then
-                Animator:Destroy() 
+                Animator:Destroy()
             end
             if HrpFarmer and HumnoidFarmer then
                 for _,v in ipairs(Farmer:GetChildren()) do
@@ -126,8 +141,16 @@ CoreLooper = Heartbeat:Connect(function()
                 shared.settings.IsFarmerNil = true
                 debugwarn("HumanoidRootPart's Farmer is nil, Set KillFarmer To:" .. shared.settings.KillFarmer)
             end
-        else
-            shared.settings.KillFarmer = false
+        end
+
+        if shared.settings.Delete_Coin then
+            for _,v in pairs(lp.Character:GetDescendants()) do
+                if v:IsA("BillboardGui") then
+                    if v.Enabled then
+                        v.Enabled = false
+                    end
+                end
+            end
         end
 
         if shared.settings.IsFarmerNil then
@@ -141,12 +164,13 @@ CoreLooper = Heartbeat:Connect(function()
 
             if shared.settings.AutoCollect.Plants then
                 local MainPlants = GetRandomPlants()
+                if not MainPlants then return end
                 Teleport(MainPlants:GetModelCFrame())
             end
 
             if shared.settings.AutoCollect.Plants then
                 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                Heartbeat:Wait()
+                -- Heartbeat:Wait()
                 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
             end
         end
