@@ -4,7 +4,7 @@ if shared.settings then return end
 
 shared.settings = {
     AutoSellWhenMax = false,
-    AutoSell = false,
+    AutoSell = true,
     KillFarmer = true,
     InstPrompt  = true,
     IsFarmerNil = nil,
