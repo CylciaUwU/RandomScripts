@@ -3,9 +3,9 @@ repeat task.wait() until game:IsLoaded()
 if shared.settings then return end
 
 shared.settings = {
-    AutoSellWhenMax = false,
+    -- AutoSellWhenMax = false,
     AutoSell = true,
-    KillFarmer = true,
+    KillFarmer = false,
     InstPrompt  = true,
     IsFarmerNil = nil,
     Delete_Coin = true,
@@ -34,7 +34,73 @@ local RunService = game:GetService("RunService")
 
 local lp = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
 local Heartbeat = RunService["Heartbeat"]
+local Stepped = RunService["Stepped"]
 local VirtualInputManager = game:GetService("VirtualInputManager")
+
+task.spawn(function()
+    local Store_Vc = Instance.new("Folder", game:GetService("Lighting"));Store_Vc.Name = game:GetService("HttpService"):GenerateGUID(false) -- create a folder to store vc
+    local Vcit = Instance.new("BodyVelocity", Store_Vc);Vcit.Name = game:GetService("HttpService"):GenerateGUID(false)
+    Vcit.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    Vcit.Velocity = Vector3.zero
+    local copiesvc = Vcit:Clone();warn("Clone", copiesvc:GetFullName(), "From", Vcit:GetFullName())
+    local toUndo = {}
+    Stepped:Connect(function()
+        pcall(function()
+            local localChar = game.Players.LocalPlayer.Character or game.Players.CharacterAdded:Wait()
+            local hrp = localChar:FindFirstChild("HumanoidRootPart")
+            local humnH = localChar:FindFirstChild("Humanoid")
+            local getStateHumanoid = humnH:GetState()
+            
+            if shared.settings.AutoCollect
+            then
+                if hrp and localChar then
+                    if hrp.Anchored then
+                        hrp.Anchored = false;warn("Anchored(Hrp)",hrp:GetFullName(),"SetTo",hrp.Anchored)
+                    else
+                        if (getStateHumanoid == Enum.HumanoidStateType.Seated) or humnH.Sit then
+                            humnH.Sit = false;warn("Humanoid(Sit)",humnH:GetFullName(),"SetTo",humnH.Sit)
+                        else
+                            if not hrp:FindFirstChild(tostring(copiesvc.Name)) then
+                                local new_vc = copiesvc:Clone()
+                                new_vc.Parent = hrp
+                            else
+                                if humnH.AutoRotate then
+                                    humnH.AutoRotate = false;warn("Humanoid(AutoRotate)",humnH:GetFullName(),"SetTo",humnH.AutoRotate)
+                                else
+                                    if getStateHumanoid ~= Enum.HumanoidStateType.StrafingNoPhysics then
+                                        humnH:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+                                        humnH:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+                                        humnH:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
+                                        humnH:ChangeState(Enum.HumanoidStateType.StrafingNoPhysics)
+                                    end
+                                    game.Players.LocalPlayer.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam
+                                    for i,v in pairs(localChar:GetDescendants()) do
+                                        if v:IsA("BasePart") and v.CanCollide then
+                                            v.CanCollide = false
+                                            toUndo[v] = true
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                game.Players.LocalPlayer.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Zoom
+                humnH:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+                humnH:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+                humnH:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+                hrp:FindFirstChild(tostring(copiesvc.Name)):Destroy()
+                humnH.AutoRotate = true
+                humnH:ChangeState(Enum.HumanoidStateType.None)
+                for i,v in pairs(toUndo) do
+                    toUndo[i] = nil
+                    i.CanCollide = true
+                end
+            end
+        end)
+    end)
+end)
 
 local function getchar(plr,yield)
     local plr = plr or lp
@@ -49,7 +115,7 @@ local function FireTouchPart(Part: BasePart)
 	local TouchTransmitter = Part:FindFirstChildOfClass("TouchTransmitter")
 	if not TouchTransmitter then return end
 
-	local Root = getchar(nil,true).HumanoidRootPart
+	local Root = getchar().HumanoidRootPart
 
     firetouchinterest(Root, Part, 0)
     firetouchinterest(Root, Part, 1)
@@ -153,26 +219,24 @@ CoreLooper = Heartbeat:Connect(function()
             end
         end
 
-        if shared.settings.IsFarmerNil then
-            if shared.settings.AutoSell and not shared.settings.AutoSellWhenMax then
-                FireTouchPart(game:GetService("Workspace").Interactions.Sell)
-            end
+        if shared.settings.AutoSell and not shared.settings.AutoSellWhenMax then
+            FireTouchPart(game:GetService("Workspace").Interactions.Sell)
+        end
 
-            if shared.settings.AutoSellWhenMax and not shared.settings.AutoSell then
-                task.spawn(GetSellWhenMaxCap)
-            end
+        -- if shared.settings.AutoSellWhenMax and not shared.settings.AutoSell then
+        --     task.spawn(GetSellWhenMaxCap)
+        -- end
 
-            if shared.settings.AutoCollect.Plants then
-                local MainPlants = GetRandomPlants()
-                if not MainPlants then return end
-                Teleport(MainPlants:GetModelCFrame())
-            end
+        if shared.settings.AutoCollect.Plants then
+            local MainPlants = GetRandomPlants()
+            if not MainPlants then return end
+            Teleport(MainPlants:GetModelCFrame() * CFrame.new(0,-4,0))
+        end
 
-            if shared.settings.AutoCollect.Plants then
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                -- Heartbeat:Wait()
-                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            end
+        if shared.settings.AutoCollect.Plants then
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            -- Heartbeat:Wait()
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
         end
 
     end)
