@@ -1,24 +1,18 @@
 local LoadingTime = tick()
-if Sylvia then warn("Sylvia: Already executed!") return end
+if Sylvia then return warn("Sylvia: Already executed!") end
 getgenv().Sylvia = true
 
-if not game:IsLoaded() then game.Loaded:Wait() end;
-repeat wait() until game:IsLoaded();
-repeat wait() until game:GetService("Players");
-repeat wait() until game:GetService("Players").LocalPlayer;
-repeat wait() until game:GetService("Players").LocalPlayer.PlayerGui;
-repeat wait() until game:GetService("Players").LocalPlayer.PlayerGui.HUD;
-repeat wait() until game:GetService("ReplicatedFirst");
-repeat wait() until game:GetService("ReplicatedStorage");
-
-local LocalPlayerUtils = {};
-LocalPlayerUtils.__index = LocalPlayerUtils;
+local _TrashTable = {};
+_TrashTable.__index = _TrashTable;
 
 local Players = game:GetService("Players");
 local ReplicatedStorage = game:GetService("ReplicatedStorage");
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser");
 local VirtualInputManager = game:GetService("VirtualInputManager");
+assert(require,loadstring([[
+    game.Players.LocalPlayer:Kick("require func is broken")
+]]))
 local SummonInfo = require(ReplicatedStorage.Modules.SummonInfo)
 local LocalPlayer = Players.LocalPlayer
 
@@ -38,40 +32,38 @@ end
 
 local Megumint = Megumint.MainThread.new()
 
-function LocalPlayerUtils:getCharacter()
+function _TrashTable:getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
-function LocalPlayerUtils:getRootPart()
+function _TrashTable:getRootPart()
     return self:getCharacter():FindFirstChild("HumanoidRootPart")
 end
-function LocalPlayerUtils:getHumanoid()
+function _TrashTable:getHumanoid()
     return self:getCharacter():FindFirstChild("Humanoid")
 end
-function LocalPlayerUtils:getState()
+function _TrashTable:getState()
     return self:getHumanoid():GetState()
 end
-function LocalPlayerUtils:isDead()
+function _TrashTable:isDead()
     return self:getState() == Enum.HumanoidStateType.Dead
 end
-function LocalPlayerUtils:changeState(...)
-    local args = { ... }
-    if #args == 0 then return end
-
+function _TrashTable:changeState(...)
+    local args = {...}
     local success, err = pcall(function()
-        self:getHumanoid():ChangeState(unpack(args))
-        sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+        self:getHumanoid():ChangeState(args[1])
+        -- sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
     end)
 
     if not success then
         warn("Failed to change state:", err)
     end
 end
-function LocalPlayerUtils:Teleport(_CFRAME_)
-    local RootPart = self:getCharacter()
-    RootPart:PivotTo(_CFRAME_)
+function _TrashTable:Teleport(CFrame : CFrame)
+    local Char = self:getCharacter()
+    Char:PivotTo(CFrame)
 end
 
-local run = function(func) func() end
+-- local run = function(func) func() end
 
 local random = math.random;
 local char = string.char;
@@ -90,7 +82,7 @@ local function RandomCharacters(length)
 end
 
 if not getgenv().antiafk then
-    run(function()
+    spawn(function()
         local getconnect = getconnections or get_signal_cons
         if getconnect then
             for i,v in pairs(getconnect(LocalPlayer.Idled)) do
@@ -111,13 +103,11 @@ if not getgenv().antiafk then
     end)
 end
 
-getgenv().antiafk = true
+getgenv().antiafk = true;
+if getgenv().globalstop then getgenv().globalstop = false end;
+if getgenv().Disconnect or getgenv().Disconnect == true then getgenv().Disconnect = false end;
 
-if getgenv().globalstop then getgenv().globalstop = false end
-if getgenv().Disconnect or getgenv().Disconnect == true then getgenv().Disconnect = false end; task.wait(.1)
-
-local playerUtils = setmetatable({}, LocalPlayerUtils)
-local canCollideCache, originalCollideState = {}, {}
+local MainCCs, OldCcs = {}, {}
 local vcName = RandomCharacters(36,72)
 local VelocityCon
 
@@ -131,9 +121,9 @@ spawn(function()
             return
         end
         pcall(function()
-            local humanoid = playerUtils:getHumanoid()
-            local rootPart = playerUtils:getRootPart()
-            local currentState = playerUtils:getState()
+            local humanoid = _TrashTable:getHumanoid()
+            local rootPart = _TrashTable:getRootPart()
+            local currentState = _TrashTable:getState()
             local isSitting = currentState == Enum.HumanoidStateType.Seated
             if AutoFarmMon or AutoFarmMon2 or AutoBoss or _Auto_Chest
             then
@@ -142,26 +132,26 @@ spawn(function()
                     local BV = rootPart:FindFirstChild(vcName)
                     if BV then BV:Destroy() end
                 end
-                if not playerUtils:isDead() then
-                    playerUtils:changeState(Enum.HumanoidStateType.StrafingNoPhysics)
+                if not _TrashTable:isDead() then
+                    _TrashTable:changeState(Enum.HumanoidStateType.StrafingNoPhysics)
                 end
                 if rootPart.Anchored then rootPart.Anchored = false end
                 if not humanoid.AutoRotate then humanoid.AutoRotate = true end
                 if LocalPlayer.PlayerGui:FindFirstChild("HUD") then LocalPlayer.PlayerGui.HUD.Enabled = true end
                 if LocalPlayer.PlayerGui:FindFirstChild("Shiftlock") then LocalPlayer.PlayerGui.Shiftlock.Enabled = true end
                 LocalPlayer.DevCameraOcclusionMode=Enum.DevCameraOcclusionMode.Invisicam
-                if not isSitting and humanoid.Health > 0 or playerUtils:isDead() then
-                    for _, part in ipairs(playerUtils:getCharacter():GetChildren()) do
+                if not isSitting and humanoid.Health > 0 or _TrashTable:isDead() then
+                    for _, part in ipairs(_TrashTable:getCharacter():GetChildren()) do
                         if part:IsA("BasePart") then
-                            if canCollideCache[part] == nil then
-                                canCollideCache[part] = part.CanCollide
-                                originalCollideState[part] = part.CanCollide
+                            if MainCCs[part] == nil then
+                                MainCCs[part] = part.CanCollide
+                                OldCcs[part] = part.CanCollide
                             end
-                            if canCollideCache[part] ~= false then
+                            if MainCCs[part] ~= false then
                                 if AutoFarmMon or AutoFarmMon2 or AutoBoss then
                                     part.CanCollide = false
                                 else
-                                    part.CanCollide = originalCollideState[part]
+                                    part.CanCollide = OldCcs[part]
                                 end
                             end
                         end
@@ -172,14 +162,14 @@ spawn(function()
                 if not rootPart:FindFirstChild(vcName) and not isSitting then
                     local bv = Instance.new("BodyVelocity", rootPart)
                     bv.Name = vcName
-                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.MaxForce = Vector3.new(math.random(math.random(math.random(math.huge))), math.huge, math.random(math.random(math.random(math.huge))))
                     bv.Velocity = Vector3.zero
                 end
             else
                 LocalPlayer.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
                 local BV = rootPart:FindFirstChild(vcName)
                 if BV then BV:Destroy() end
-                playerUtils:changeState(Enum.HumanoidStateType.None)
+                _TrashTable:changeState(Enum.HumanoidStateType.None)
             end
         end)
     end)
@@ -193,10 +183,10 @@ spawn(function()
     end
 end)
 
-local ClientUtils = {}
-ClientUtils.__index = ClientUtils
+local _TrashLPTable = {}
+_TrashLPTable.__index = _TrashLPTable
 
-function ClientUtils:RandomRotateReal()
+function _TrashLPTable:RandomRotateReal()
     if ToRotate == 1 then
         getgenv().Rotate = CFrame.new(0,DistanceFarms,0) * CFrame.Angles(math.rad(-90), 0, 0)
     elseif ToRotate == 2 then
@@ -213,7 +203,7 @@ function ClientUtils:RandomRotateReal()
         getgenv().Rotate = CFrame.new(0,DistanceFarms,0) * CFrame.Angles(math.rad(-90), 0, 0)
     end
 end
-function ClientUtils:InBackpackItems()
+function _TrashLPTable:InBackpackItems()
     local item
     for _,v in ipairs(LocalPlayer.Backpack:GetChildren()) do
         if v:IsA("Tool") and v:GetAttribute("Type") == "Items" then
@@ -223,7 +213,7 @@ function ClientUtils:InBackpackItems()
     end
     return item
 end
-function ClientUtils:getTypeTool(Attribute)
+function _TrashLPTable:getTypeTool(Attribute)
     local willreturnnametool
     for _,v in ipairs(LocalPlayer.Backpack:GetChildren()) do
         if v:IsA("Tool") and v:GetAttribute("Type") == Attribute then
@@ -239,7 +229,7 @@ function ClientUtils:getTypeTool(Attribute)
     end
     return willreturnnametool
 end
-function ClientUtils:getTool(Values)
+function _TrashLPTable:getTool(Values)
     local Attribute = Values
     local Weapon = self:getTypeTool(Attribute)
     local Tool
@@ -251,7 +241,7 @@ function ClientUtils:getTool(Values)
                     break
                 end
             end
-            for _,v in ipairs(LocalPlayerUtils:getCharacter():GetChildren()) do
+            for _,v in ipairs(_TrashTable:getCharacter():GetChildren()) do
                 if v:IsA("Tool") and v.Name == Weapon then
                     Tool = v.Name
                     break
@@ -261,20 +251,20 @@ function ClientUtils:getTool(Values)
     end)
     return Tool
 end
-function ClientUtils:EquipTools(Value)
+function _TrashLPTable:EquipTools(Value)
     local getName = self:getTool(Value)
-    local WhereIs = LocalPlayer.Backpack:FindFirstChild(getName) or LocalPlayerUtils:getCharacter():FindFirstChild(getName)
+    local WhereIs = LocalPlayer.Backpack:FindFirstChild(getName) or _TrashTable:getCharacter():FindFirstChild(getName)
     local InBackpack = WhereIs.Parent == LocalPlayer.Backpack
-    local InCharacter = WhereIs.Parent == LocalPlayerUtils:getCharacter()
-    if WhereIs and LocalPlayerUtils:getCharacter() and not LocalPlayerUtils:isDead() then
+    local InCharacter = WhereIs.Parent == _TrashTable:getCharacter()
+    if WhereIs and _TrashTable:getCharacter() and not _TrashTable:isDead() then
         if InCharacter then
             WhereIs:Activate()
         elseif InBackpack then
-            LocalPlayerUtils:getHumanoid():EquipTool(WhereIs)
+            _TrashTable:getHumanoid():EquipTool(WhereIs)
         end
     end
 end
-function ClientUtils:IsItem()
+function _TrashLPTable:IsItem()
     local target
     for _,v in ipairs(LocalPlayer.Backpack:GetChildren()) do
         if v:IsA("Tool") and v:GetAttribute("Type") == "Items" then
@@ -284,7 +274,7 @@ function ClientUtils:IsItem()
     end
     return target
 end
-function ClientUtils:AutoEquip(Value)
+function _TrashLPTable:AutoEquip(Value)
     local Success , err = pcall(function()
         self:EquipTools(Value)
     end)
@@ -300,7 +290,7 @@ InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/da
 local Options = Fluent.Options
 
 local Window = Fluent:CreateWindow({
-    Title = "indev - Rock Fruit",
+    Title = "Rock Fruit",
     SubTitle = "By Sylvia",
     TabWidth = 160,
     Size =  UDim2.fromOffset(580, 460),
@@ -318,25 +308,15 @@ local Tap = {
 }
 
 local All_NPC_MONSTER = loadstring(game:HttpGet("https://raw.githubusercontent.com/CylciaUwU/RandomScripts/main/_Rock_Fruit_All_Npc.lua"))() ; warn("Loaded NPC World1")
-local World2 = loadstring(game:HttpGet("https://github.com/CylciaUwU/RandomScripts/raw/main/_ROCK_FRUIT_WORLD2NPC.lua"))() ; warn("Loaded NPC World2")
+local World2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/CylciaUwU/RandomScripts/raw/main/_ROCK_FRUIT_WORLD2NPC.lua"))() ; warn("Loaded NPC World2")
 local NPC_Storage, NPC_Storage_World2, LocalAccessories = {}, {}, {}
 
-run(function()
+spawn(function()
     for _,v in ipairs(All_NPC_MONSTER) do
         table.insert(NPC_Storage,v)
     end
     for _,v in ipairs(World2) do
         table.insert(NPC_Storage_World2,v)
-    end
-end)
-run(function()
-    local ListAccessories = LocalPlayer.PlayerGui:WaitForChild("HUD",300):WaitForChild("Inventory",300):WaitForChild("Sub_Inventory",300):WaitForChild("Main",300):WaitForChild("ScrollingFrame",300)
-    if ListAccessories then
-        for _,v in ipairs(ListAccessories:GetChildren()) do
-            if v:IsA("Frame") and v:GetAttribute("Type") == "Accessories" then
-                table.insert(LocalAccessories,v.Name)
-            end
-        end 
     end
 end)
 
@@ -376,41 +356,11 @@ Main = Tap.General:AddSection('Main'); do
         local AutoFarm = Main:AddToggle("", {Title = "Auto Farm", Description = "Will improved next update. uwu" ,Default = false})
         AutoFarm:OnChanged(function(v)
             AutoFarmMon = v
-            -- while AutoFarmMon do task.wait()
-            --     pcall(function()
-            --         for _,v in pairs(workspace.Mob:GetChildren()) do
-            --             if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health ~= 0 then
-            --                 if v.Name == SelectMonFramWorld1 then
-            --                     repeat task.wait()
-            --                         if getgenv().globalstop then return end;if v.Humanoid.Health==0 then getgenv().CanPressSkill=false else getgenv().CanPressSkill=true end
-            --                         LocalPlayerUtils:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
-            --                         ClientUtils:AutoEquip(SelectWeapon)
-            --                     until not AutoFarmMon or v.Humanoid.Health == 0 or getgenv().globalstop
-            --                 end
-            --             end
-            --         end
-            --     end)
-            -- end
         end)
     elseif game.PlaceId == 72064813230771 then
         local AutoFarm2 = Main:AddToggle("", {Title = "Auto Farm(World2)", Description = "Will improved next update. uwu" ,Default = false})
         AutoFarm2:OnChanged(function(v)
             AutoFarmMon2 = v
-            -- while AutoFarmMon2 do task.wait()
-            --     pcall(function()
-            --         for _,v in pairs(workspace.Mob:GetChildren()) do
-            --             if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health ~= 0 then
-            --                 if v.Name == SelectMonFramWorld2 then
-            --                     repeat task.wait()
-            --                         if getgenv().globalstop then return end;if v.Humanoid.Health==0 then getgenv().CanPressSkill=false else getgenv().CanPressSkill=true end
-            --                         LocalPlayerUtils:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
-            --                         ClientUtils:AutoEquip(SelectWeapon)
-            --                     until not AutoFarmMon2 or v.Humanoid.Health == 0 or getgenv().globalstop
-            --                 end
-            --             end
-            --         end
-            --     end)
-            -- end
         end)
     end
     local DistanceFarm = Main:AddSlider("Distance_Auto_Farm", {
@@ -466,7 +416,7 @@ Main = Tap.General:AddSection('Main'); do
             pcall(function()
                 for _,v in ipairs(workspace.MobSpawnGroup:GetDescendants()) do
                     if v:FindFirstChild("ChestRef") then
-                        LocalPlayerUtils:Teleport(v.CFrame)
+                        _TrashTable:Teleport(v.CFrame)
                     end
                 end
             end)
@@ -520,7 +470,7 @@ Main = Tap.General:AddSection('Main'); do
         AutoGrab = v
         while AutoGrab do task.wait()
             pcall(function()
-                local Humanoid = LocalPlayerUtils:getHumanoid()
+                local Humanoid = _TrashTable:getHumanoid()
                 for _,v in pairs(workspace.Fruits:GetChildren()) do
                     if v:IsA("Tool") then
                         if LocalPlayer.Character and v:IsA("BackpackItem") and v:FindFirstChild("Handle") then
@@ -545,7 +495,7 @@ Main = Tap.General:AddSection('Main'); do
 end
 Teleports = Tap.Island:AddSection('Main'); do
     local All_Islands = {}
-    run(function()
+    spawn(function()
         for _,v in pairs(workspace.Island:GetChildren()) do
             if v:IsA("Model") then
                 table.insert(All_Islands,v.Name)
@@ -568,7 +518,7 @@ Teleports = Tap.Island:AddSection('Main'); do
             pcall(function()
                 for i,v in pairs(workspace.Island:GetChildren()) do
                     if v.Name == SelectIsland then
-                        LocalPlayerUtils:Teleport(v:GetModelCFrame() * CFrame.new(0,25,0))
+                        _TrashTable:Teleport(v:GetModelCFrame() * CFrame.new(0,25,0))
                     end
                 end
             end)
@@ -581,7 +531,7 @@ Teleports = Tap.Island:AddSection('Main'); do
             pcall(function()
                 local Portal = workspace:FindFirstChild("Portal")
                 if Portal then
-                    LocalPlayerUtils:Teleport(Portal.CFrame)
+                    _TrashTable:Teleport(Portal.CFrame)
                 end
             end)
         end
@@ -589,9 +539,20 @@ Teleports = Tap.Island:AddSection('Main'); do
 end
 
 Boss_List = {}
-run(function()
+spawn(function()
     for x,v in next, SummonInfo do
         table.insert(Boss_List,x)
+    end
+end)
+
+spawn(function()
+    local ListAccessories = LocalPlayer.PlayerGui:WaitForChild("HUD"):WaitForChild("Inventory"):WaitForChild("Sub_Inventory"):WaitForChild("Main"):WaitForChild("ScrollingFrame")
+    if ListAccessories then
+        for _,v in ipairs(ListAccessories:GetChildren()) do
+            if v:IsA("Frame") and v:GetAttribute("Type") == "Accessories" then
+                table.insert(LocalAccessories,v.Name)
+            end
+        end
     end
 end)
 
@@ -640,7 +601,7 @@ Boss = Tap.Boss:AddSection('Main'); do
         Title = "Teleport To Summon Boss",
         Description = "",
         Callback = function()
-            LocalPlayerUtils:Teleport(workspace.NpcSpawnBoss.NPC:GetModelCFrame())
+            _TrashTable:Teleport(workspace.NpcSpawnBoss.NPC:GetModelCFrame())
         end
     })
     -- Notifi("Error","Status","Click Teleport Again",7)
@@ -671,6 +632,7 @@ spawn(function()
         end)
     end
 end)
+
 spawn(function()
     getgenv().ThreadAutoFarm = Megumint:newThread(0,function()
         if getgenv().Disconnect then Megumint:removeThread(ThreadAutoFarm) end
@@ -681,8 +643,8 @@ spawn(function()
                         if v.Name == SelectMonFramWorld1 then
                             repeat task.wait()
                                 if getgenv().globalstop then return end;if v.Humanoid.Health==0 then getgenv().CanPressSkill=false else getgenv().CanPressSkill=true end
-                                LocalPlayerUtils:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
-                                ClientUtils:AutoEquip(SelectWeapon)
+                                _TrashTable:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
+                                _TrashLPTable:AutoEquip(SelectWeapon)
                             until not AutoFarmMon or v.Humanoid.Health == 0 or getgenv().globalstop
                         end
                     end
@@ -701,8 +663,8 @@ spawn(function()
                         if v.Name == SelectMonFramWorld2 then
                             repeat task.wait()
                                 if getgenv().globalstop then return end;if v.Humanoid.Health==0 then getgenv().CanPressSkill=false else getgenv().CanPressSkill=true end
-                                LocalPlayerUtils:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
-                                ClientUtils:AutoEquip(SelectWeapon)
+                                _TrashTable:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
+                                _TrashLPTable:AutoEquip(SelectWeapon)
                             until not AutoFarmMon2 or v.Humanoid.Health == 0 or getgenv().globalstop
                         end
                     end
@@ -738,8 +700,8 @@ spawn(function()
                         if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health ~= 0 then
                             repeat task.wait()
                                 if getgenv().globalstop then return end;if v.Humanoid.Health==0 then getgenv().CanPressSkill=false else getgenv().CanPressSkill=true end
-                                LocalPlayerUtils:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
-                                ClientUtils:AutoEquip(SelectWeapon)
+                                _TrashTable:Teleport(v.HumanoidRootPart.CFrame * getgenv().Rotate)
+                                _TrashLPTable:AutoEquip(SelectWeapon)
                             until not AutoBoss or v.Humanoid.Health == 0 or getgenv().globalstop
                         end
                     end
@@ -763,7 +725,9 @@ spawn(function()
         if getgenv().Disconnect then break end
         if AutoStores then
             pcall(function()
-                replicatesignal(LocalPlayer.PlayerGui:FindFirstChild("Dialogue").Dialog.Sub_Dialog.Frame.Store["3"].MouseButton1Click)
+                if LocalPlayer.Character:FindFirstChildWhichIsA("Tool") then -- Check ClassName is Tool
+                    replicatesignal(LocalPlayer.PlayerGui:FindFirstChild("Dialogue").Dialog.Sub_Dialog.Frame.Store["3"].MouseButton1Click)
+                end
             end)
         end
     end
@@ -774,13 +738,13 @@ spawn(function()
         if AutoStores then
             pcall(function()
                 repeat wait(.3)
-                    local Single = ClientUtils:InBackpackItems()
+                    local Single = _TrashLPTable:InBackpackItems()
                     if Single then
                         getgenv().globalstop = true
                         LocalPlayer.Character.Humanoid:EquipTool(Single) 
                     end
                 until (Single) or not AutoStores
-                for _, v in ipairs(LocalPlayerUtils:getCharacter():GetChildren()) do
+                for _, v in ipairs(_TrashTable:getCharacter():GetChildren()) do
                     if v:IsA("Tool") and v:GetAttribute("Type") == "Items" then
                         v:Activate()
                         task.wait(.5)
@@ -798,7 +762,7 @@ spawn(function()
         if _RemoveEffects then
             pcall(function()
                 for _,v in pairs(game:GetService("Workspace")["FX"]:GetChildren()) do
-                    if v.Name ~= "Cam" then
+                    if not v:IsA("Model") then -- Fixed Broken Cam
                         v:ClearAllChildren()
                     end
                 end
@@ -819,7 +783,7 @@ spawn(function()
             elseif MethodFarms == "Below" then
                 getgenv().Rotate = CFrame.new(0,-DistanceFarms,0) * CFrame.Angles(math.rad(90), 0, 0)
             elseif MethodFarms == "RandomRotate" then
-                ClientUtils:RandomRotateReal()
+                _TrashLPTable:RandomRotateReal()
             end
         end)
     end)
@@ -827,7 +791,7 @@ end)
 spawn(function()
     getgenv().ThreadAutoSkill = Megumint:newThread(0,function()
         if getgenv().Disconnect then Megumint:removeThread(ThreadAutoSkill) end
-        if EnableAutoSkills and getgenv().CanPressSkill and not LocalPlayerUtils:isDead() then
+        if EnableAutoSkills and getgenv().CanPressSkill and not _TrashTable:isDead() then
             pcall(function()
                 if table.find(AutoSpamSkill,"Z") then
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Z, false, game)
@@ -964,7 +928,7 @@ end)
 local Timer
 Timer = RunService.Heartbeat:Connect(function() -- All RunService
     if getgenv().Disconnect then
-        Timer:Disconnect();Timer = nil;print("Disconnect Heartbeat")
+        Timer:Disconnect();Timer = nil
     end
     pcall(function()
         local TimeSinceLastPlay = os.time() - Old
@@ -981,15 +945,22 @@ InterfaceManager:SetFolder("KuroneUwU")
 InterfaceManager:BuildInterfaceSection(Tap.Settings)
 Window:SelectTab(1)
 
--- SaveManager:LoadAutoloadConfig()
--- Fluent:SetTheme("Darker")
 if setfpscap then
     setfpscap(240)
 end
 
+if setfflag then
+    pcall(function()
+        setfflag("AbuseReportScreenshot", "False")
+        setfflag("AbuseReportScreenshotPercentage", "0")
+        setfflag("HumanoidParallelRemoveNoPhysics", "False")
+        setfflag("HumanoidParallelRemoveNoPhysicsNoSimulate2", "False")
+    end)
+end
+
 print("Loading Success Took "..string.format("%.2f",tick() - LoadingTime).." secs")
 Fluent:Notify({
-    Title = "Kurone",
+    Title = "Script",
     Content = "Loading Success Took "..string.format("%.2f",tick() - LoadingTime).." secs",
     Duration = 8
 })
