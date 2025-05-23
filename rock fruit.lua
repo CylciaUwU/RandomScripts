@@ -12,7 +12,7 @@ local VirtualUser = game:GetService("VirtualUser");
 local VirtualInputManager = game:GetService("VirtualInputManager");
 assert(require,loadstring([[
     game.Players.LocalPlayer:Kick("require func is broken")
-]]))
+]]))()
 local SummonInfo = require(ReplicatedStorage.Modules.SummonInfo)
 local LocalPlayer = Players.LocalPlayer
 
