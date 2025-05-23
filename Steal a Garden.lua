@@ -126,7 +126,7 @@ local function GetSellWhenMaxCap()
     local AnchorPoint = Crate["AnchorPoint"]
     local Capacity = Crate["MaxCapacity"].Value;
 
-    --// TODO use forloop :c
+    --// TODO use pairs to get better performance :c
 
     local GetCapText = AnchorPoint["CapacityBillboard"]["CapacityText"].Text
     local getHalfText = string.split(GetCapText,"/")
