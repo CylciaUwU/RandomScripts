@@ -1,6 +1,6 @@
 repeat task.wait() until game:IsLoaded()
 
-if shared.settings then return end
+if shared.settings then table.clear(shared.settings) end -- clear table
 
 shared.settings = {
     -- AutoSellWhenMax = false,
@@ -14,6 +14,9 @@ shared.settings = {
         Plants = true
     }
 }
+
+-- Luraph
+LPH_NO_VIRTUALIZE = (function(...) return ... end)
 
 local isDebug = false
 isDebug = true
@@ -32,19 +35,24 @@ end
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local lp = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
 local Heartbeat = RunService["Heartbeat"]
 local Stepped = RunService["Stepped"]
 local VirtualInputManager = game:GetService("VirtualInputManager")
 
-task.spawn(function()
-    local Store_Vc = Instance.new("Folder", game:GetService("Lighting"));Store_Vc.Name = game:GetService("HttpService"):GenerateGUID(false) -- create a folder to store vc
+if getgenv().VelocityP then
+    getgenv().VelocityP:Disconnect()
+    getgenv().VelocityP = nil
+end
+
+spawn(function()
+    local Store_Vc = Instance.new("Folder", game:GetService("Lighting"));Store_Vc.Name = game:GetService("HttpService"):GenerateGUID(false)
     local Vcit = Instance.new("BodyVelocity", Store_Vc);Vcit.Name = game:GetService("HttpService"):GenerateGUID(false)
     Vcit.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     Vcit.Velocity = Vector3.zero
     local copiesvc = Vcit:Clone();warn("Clone", copiesvc:GetFullName(), "From", Vcit:GetFullName())
     local toUndo = {}
-    Stepped:Connect(function()
+    getgenv().VelocityP = Stepped:Connect(function()
         pcall(function()
             local localChar = game.Players.LocalPlayer.Character or game.Players.CharacterAdded:Wait()
             local hrp = localChar:FindFirstChild("HumanoidRootPart")
@@ -55,10 +63,10 @@ task.spawn(function()
             then
                 if hrp and localChar then
                     if hrp.Anchored then
-                        hrp.Anchored = false;warn("Anchored(Hrp)",hrp:GetFullName(),"SetTo",hrp.Anchored)
+                        hrp.Anchored = false;warn("Anchored(Hrp)", hrp:GetFullName(), "SetTo",hrp.Anchored)
                     else
                         if (getStateHumanoid == Enum.HumanoidStateType.Seated) or humnH.Sit then
-                            humnH.Sit = false;warn("Humanoid(Sit)",humnH:GetFullName(),"SetTo",humnH.Sit)
+                            humnH.Sit = false;warn("Humanoid(Sit)", humnH:GetFullName(), "SetTo",humnH.Sit)
                         else
                             if not hrp:FindFirstChild(tostring(copiesvc.Name)) then
                                 local new_vc = copiesvc:Clone()
@@ -102,46 +110,56 @@ task.spawn(function()
     end)
 end)
 
-local function getchar(plr,yield)
-    local plr = plr or lp
+local Modules = {}
+Modules.__index = Modules;
+
+function Modules:getchar(plr,yield)
+    local plr = plr or LocalPlayer
     return plr.Character or yield and plr.CharacterAdded:Wait()
 end
-local function Teleport(CFrame: CFrame)
-    local Char = getchar()
+function Modules:Teleport(CFrame: CFrame)
+    local Char = self:getchar()
     return Char:PivotTo(CFrame)
 end
 
-local function FireTouchPart(Part: BasePart)
+function Modules:FireTouchPart(Part: BasePart)
 	local TouchTransmitter = Part:FindFirstChildOfClass("TouchTransmitter")
 	if not TouchTransmitter then return end
 
-	local Root = getchar().HumanoidRootPart
+	local Root = self:getchar().HumanoidRootPart
 
     firetouchinterest(Root, Part, 0)
     firetouchinterest(Root, Part, 1)
 end
-local function GetSellWhenMaxCap()
-    local Char = getchar()
-    local Crate = Char:FindFirstChild("Crate");
-    local AnchorPoint = Crate["AnchorPoint"]
-    local Capacity = Crate["MaxCapacity"].Value;
-
-    --// TODO use pairs to get better performance :c
-
-    local GetCapText = AnchorPoint["CapacityBillboard"]["CapacityText"].Text
-    local getHalfText = string.split(GetCapText,"/")
-     local getTextCapMax = tonumber(getHalfText[1])
-    local getTextCapMax2 = tonumber(getHalfText[2])
-
-    if getTextCapMax >= getTextCapMax2 then
-        FireTouchPart(game:GetService("Workspace").Interactions.Sell)
-    end
-end
-local function GetRandomPlants()
+-- unused function
+-- local function GetSellWhenMaxCap()
+--     --// TODO use pairs to get better performance :c
+--     if LocalPlayer.Character:FindFirstChild("Crate") then
+--         for _,v in ipairs(LocalPlayer.Character:FindFirstChild("Crate"):GetChildren()) do
+--             local AnchorPoint = v:FindFirstChild("AnchorPoint");
+--             local GetCapText = AnchorPoint["CapacityBillboard"];
+--             local Capacity = AnchorPoint["MaxCapacity"].Value;
+--             for _,x in ipairs(GetCapText:GetDescendants()) do
+--                 if x:IsA("BillboardGui") then
+--                     if x.Name == "CapacityText" then
+--                         local GetCapText = x.Text;
+--                         local getHalfText = string.split(GetCapText,"/");
+--                         local GetMaxCap = tonumber(getHalfText[1]);
+--                         local GetMaxCap2 = tonumber(getHalfText[2]);
+--                         if GetMaxCap >= GetMaxCap2 then
+--                             return FireTouchPart(game:GetService("Workspace").Interactions.Sell)
+--                         end
+--                     end
+--                 end
+--             end
+--         end
+--     end
+-- end
+function Modules:GetRandomPlants()
     local Plants
     for i,v in ipairs(workspace.Plants:GetChildren()) do
         if v:IsA("Model") then
-            Plants = v
+            Plants = v -- or return v.Name
             break -- return one plant per call func
         end
     end
@@ -153,35 +171,33 @@ if CoreLooper then
     CoreLooper = nil
 end
 
-if PromptButtonHoldBegan ~= nil then
-    PromptButtonHoldBegan:Disconnect()
-    PromptButtonHoldBegan = nil
-end
-
 local PromptButtonHoldBegan = nil
 spawn(function()
     if shared.settings.InstPrompt then
         PromptButtonHoldBegan = game:GetService("ProximityPromptService").PromptButtonHoldBegan:Connect(function(prompt)
 			fireproximityprompt(prompt)
 		end)
+    else
+        PromptButtonHoldBegan:Disconnect()
+        PromptButtonHoldBegan = nil
     end
 end)
 
 task.spawn(function()
-    local _s,_f = pcall(function()
-        loadstring([[
-            game:GetService("Players").LocalPlayer.PlayerScripts.Coins.Enabled = false
-            game:GetService("ReplicatedStorage").Assets:FindFirstChild("Coins"):Destroy()
-            game:GetService("ReplicatedStorage").Assets:FindFirstChild("Coin"):Destroy()
-        ]])()
-    end)
-    assert(_s,debugprint("Destroy All Coins"))
+    local sL,Fs = pcall(loadstring([[
+            lp.PlayerScripts.Coins.Enabled = false
+            for i,v in ipairs(game:GetService("ReplicatedStorage")["Assets"]:GetChildren()) do
+                -- if v:find(v.Name:lower(),"coin") then
+                if string.find(v.Name:lower(),"coin") then
+                    v:Destroy()
+                end
+            end
+    ]]))()
+    assert(sL,debugprint("Destroy All Coins"))
 end)
 
-local CoreLooper = getgenv().CoreLooper
-CoreLooper = Heartbeat:Connect(function()
+getgenv().CoreLooper = Heartbeat:Connect(function() -- Fires every frame
     pcall(function()
-
         if shared.settings.KillFarmer then
             local Farmer = game:GetService("Workspace"):FindFirstChild("Farmer")
             local HrpFarmer = Farmer:FindFirstChild("HumanoidRootPart")
@@ -190,7 +206,7 @@ CoreLooper = Heartbeat:Connect(function()
 
             if HumnoidFarmer.PlatformStand ~= true then
                 HumnoidFarmer.PlatformStand = true
-                sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
+                -- sethiddenproperty(game.Players.LocalPlayer, "SimulationRadius", math.huge)
             end
             HumnoidFarmer:RemoveAccessories()
             if Animator then
@@ -203,14 +219,14 @@ CoreLooper = Heartbeat:Connect(function()
                     end
                 end
             else
+                debugwarn("Not Found HumanoidRootPart's Farmer.")
                 shared.settings.KillFarmer = false
                 shared.settings.IsFarmerNil = true
-                debugwarn("HumanoidRootPart's Farmer is nil, Set KillFarmer To:" .. shared.settings.KillFarmer)
             end
         end
 
         if shared.settings.Delete_Coin then
-            for _,v in pairs(lp.Character:GetDescendants()) do
+            for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
                 if v:IsA("BillboardGui") then
                     if v.Enabled then
                         v.Enabled = false
@@ -219,26 +235,41 @@ CoreLooper = Heartbeat:Connect(function()
             end
         end
 
-        if shared.settings.AutoSell and not shared.settings.AutoSellWhenMax then
-            FireTouchPart(game:GetService("Workspace").Interactions.Sell)
+        if shared.settings.AutoSell then
+            Modules:FireTouchPart(game:GetService("Workspace").Interactions.Sell)
         end
 
-        -- if shared.settings.AutoSellWhenMax and not shared.settings.AutoSell then
-        --     task.spawn(GetSellWhenMaxCap)
-        -- end
-
         if shared.settings.AutoCollect.Plants then
-            local MainPlants = GetRandomPlants()
+            local MainPlants = Modules:GetRandomPlants()
             if not MainPlants then return end
-            Teleport(MainPlants:GetModelCFrame() * CFrame.new(0,-4,0))
+            Modules:Teleport(MainPlants:GetModelCFrame() * CFrame.new(0,-4,0))
         end
 
         if shared.settings.AutoCollect.Plants then
+            --// TODO use fireproximityprompt >^<
             VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-            -- Heartbeat:Wait()
             VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
         end
 
     end)
     Heartbeat:Wait()
 end)
+
+LPH_NO_VIRTUALIZE(function()
+	task.spawn(function()
+		while task.wait() do
+			if setscriptable then
+				setscriptable(LocalPlayer, "SimulationRadius", true)
+			end
+			if sethiddenproperty then
+                LocalPlayer.setsimulationradius(math.huge)
+				sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+                sethiddenproperty(LocalPlayer, "MaxSimulationRadius", math.huge)
+            else
+                LocalPlayer.setsimulationradius(math.huge);
+                LocalPlayer.MaxSimulationRadius = math.huge;
+                LocalPlayer.SimulationRadius = math.huge;
+			end
+		end
+	end)
+end)()
