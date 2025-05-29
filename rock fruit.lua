@@ -953,8 +953,6 @@ if setfflag then
     pcall(function()
         setfflag("AbuseReportScreenshot", "False")
         setfflag("AbuseReportScreenshotPercentage", "0")
-        setfflag("HumanoidParallelRemoveNoPhysics", "False")
-        setfflag("HumanoidParallelRemoveNoPhysicsNoSimulate2", "False")
     end)
 end
 
