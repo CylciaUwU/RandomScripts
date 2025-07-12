@@ -346,10 +346,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
             pcall(function()
                 for _,v in pairs(workspace.Items:GetChildren()) do
                     if string.find(v.Name, "Item Chest") then
-                        local args = {
-                            v
-                        }
-                        RequestOpenItemChest:FireServer(unpack(args))
+                        RequestOpenItemChest:FireServer(v)
                     end
                 end
             end)
@@ -799,7 +796,7 @@ local Timer;Timer = Heartbeat:Connect(function()
 end)
 
 InterfaceManager:SetLibrary(Fluent)
-InterfaceManager:SetFolder("SylviaIsFemboy")
+InterfaceManager:SetFolder("Sylvia")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 Window:SelectTab(1)
 
