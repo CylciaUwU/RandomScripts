@@ -1,68 +1,42 @@
-shared.Dev_DEBUG = true
 LoadingTime = tick()
 
-if Syreiy and not shared.Dev_DEBUG == true then
-    return
-end
+-- if getgenv().Syreiy and not shared.DEBUG == true then
+--     return
+-- end
 
-pcall(function() getgenv().Syreiy = true end)
+-- pcall(function() getgenv().Syreiy = true end)
 if not game:IsLoaded() then game.Loaded:Wait() end; warn("Hello :3")
 
 local Modules = {};
 Modules.__index = Modules;
 
-shared.Syreiy = {
-    ["Configuration"] = {
-        ["KillAura"] = {
-            ["Enabled"]  = false,        
-            ["Distance"] = 25, --// Default distance for KillAura
-        },
-        ["Tree_Farm"] = {
-            ["Enabled"] = false,
-            ["Select_Area"] = "Foliage" -- Landmarks, Foliage
-        },
-        ["Fog"] = {
-            ["Enabled"] = false,
-        },
-        ["SafePart"] = {
-            ["Enabled"] = false
-        },
-        ["WalkSpeed"] = {
-            ["Enabled"] = false,
-            ["SpeedType"] = "ChangeSpeed",
-            ["SetWalkSpeed"] = .1
-        },
-        ["Noclip"] = {
-            ["Enabled"] = false,
-        },
-        ["InfJump"] = {
-            ["Enabled"] = false
-        },
-        ["FullBright"] = {
-            ["Enabled"] = false,
-        },
-        ["InstPrompts"] = {
-            ["Enabled"] = false,
-        },
-        ["ESP"] = {
-            ["Enabled"] = false,
-            ["Players"] = false,
-            ["Boxex"] = false,
-            ["Names"] = true,
-        }
-    }
+local Settings = {
+    KillAura = false,
+    Distance = 25,
+    AutoFarmTree = false,
+    No_Fog = false,
+    Sefe_Part = false,
+    WalkSpeed = false,
+    WalkSpeedVal = .3,
+    SpeedType = "ChangeSpeed",
+    BringType = "Once", -- once, All
+    Noclip = false,
+    InfJump = false,
+    FullBright = false,
+    InstPrompts = false,
+    ESP = false,
 }
 
-local RepitationThread = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/ea277c117164f82fb40016246ba6a9ad/raw/eb0502cf8ad85b70a7b24e92227f37e717eb8111/RepitationThread.luau"))()
-local Controller = RepitationThread.new()
-local callreiy = shared.Syreiy["Configuration"];
+local RepitationThread = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/ea277c117164f82fb40016246ba6a9ad/raw/eb0502cf8ad85b70a7b24e92227f37e717eb8111/RepitationThread.luau"))();
+local Controller = RepitationThread.new();
 local random = math.random;
 local char = string.char;
+local NO_VIRTUALIZE = (function(...) return ... end)
 
 local ESP = loadstring(game:HttpGet("https://kiriot22.com/releases/ESP.lua"))();
-ESP.Players = callreiy["ESP"]["Players"] or false;
-ESP.Boxes = callreiy["ESP"]["Boxed"] or false;
-ESP.Names = callreiy["ESP"]["Names"] or true;
+ESP.Players = false;
+ESP.Boxes = false;
+ESP.Names = true;
 
 function missing(t, f, fallback)
     if type(f) == t then return f end
@@ -79,12 +53,12 @@ local Lighting = cloneref(game:GetService("Lighting"));
 local RunService = cloneref(game:GetService("RunService"));
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"));
 -- local VirtualInputManager = cloneref(game:GetService("VirtualInputManager"));
--- local VirtualUser = cloneref(game:GetService("VirtualUser"));
+local VirtualUser = cloneref(game:GetService("VirtualUser"));
 local UserInputService = cloneref(game:GetService("UserInputService"));
 
 --// Variable
 local PlayersGui = LocalPlayer:FindFirstChildWhichIsA("PlayerGui");
-local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
+local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents");
 local RequestOpenItemChest = RemoteEvents["RequestOpenItemChest"];
 local ToolDamageObject = RemoteEvents["ToolDamageObject"];
 local Heartbeat, Stepped, RenderStepped, PreSimulation = RunService.Heartbeat, RunService.Stepped, RunService.RenderStepped, RunService.PreSimulation;
@@ -92,17 +66,15 @@ local IsOnMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, UserIn
 
 local Fluent = nil
 Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))();
-SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
-local Options = Fluent.Options
+-- SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))();
+InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))();
+local Options = Fluent.Options;
 
 while not LocalPlayer do
 	wait()
-	LocalPlayer = cloneref(Players.LocalPlayer);
+	LocalPlayer = cloneref(Players.LocalPlayer)
 end
-
-local WhatExecutor = tostring(identifyexecutor());
-
+-- local WhatExecutor = tostring(identifyexecutor());
 local isDebug = false
 isDebug = true
 local debugprint, debugwarn; do
@@ -127,6 +99,7 @@ spawn(function()
         cs = Vector3.new(5, 250, 5) + Vector3.new(0, r, 0);
         getgenv().Part.CFrame = CFrame.new(cs);
         getgenv().Part.Material = Enum.Material.ForceField
+        getgenv().Part.Transparency = 1
 
         getgenv().Part.Name = game:GetService("HttpService"):GenerateGUID(false);
     end)
@@ -150,7 +123,6 @@ end
 function Modules:changeState(State)
     local success, failed = pcall(function()
         self:getHumanoid():ChangeState(State)
-        sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
     end)
     if failed then
         return debugwarn("Failed to change state", failed)
@@ -177,7 +149,7 @@ function Modules:FireTouchPart(Part: BasePart)
         firetouchinterest(Root, Part, 0)
         firetouchinterest(Root, Part, 1)
     else
-        return debugwarn("Missing HumanoidRootPart or firetouchinterest function.", "Executor:", WhatExecutor)
+        return debugwarn("Missing HumanoidRootPart or firetouchinterest function.")
     end
 end
 local Blacklist = {
@@ -186,14 +158,14 @@ local Blacklist = {
     "lost child"
 }
 function Modules:GetClosestMob()
-    local dist = callreiy["KillAura"]["Distance"] or 1/0
+    local dist = Settings.Distance or 1/0
     local closest_mob
 
     for _, v in pairs(workspace.Characters:GetChildren()) do
         if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
             if not table.find(Blacklist, v.Name:lower()) then
                 local Hum = v:FindFirstChild("HumanoidRootPart")
-                local DistanceFromTarget =  Hum and LocalPlayer:DistanceFromCharacter(Hum.CFrame.Position)
+                local DistanceFromTarget = Hum and LocalPlayer:DistanceFromCharacter(Hum.CFrame.Position)
 
                 if DistanceFromTarget and DistanceFromTarget <= dist then
                     dist = DistanceFromTarget
@@ -217,9 +189,9 @@ function Modules:GetPlayerEquipped()
     return WhatWeaponIsPlayerEquip
 end
 function Modules:KillAura()
-    local args = nil;
+    args = nil;
 
-    local Mobs, distance = self:GetClosestMob()
+    local Mobs, distance = self:GetClosestMob();
 	local Weapons = self:GetPlayerEquipped();
     if not Weapons and not Mobs then return end
 
@@ -230,16 +202,29 @@ function Modules:KillAura()
             "1_" .. LocalPlayer.UserId,
             Mobs.HumanoidRootPart.CFrame
         }
-        ToolDamageObject:InvokeServer(unpack(args));
     end)
+
+    if not success then return end
+
+    return ToolDamageObject:InvokeServer(unpack(args));
 end
-function Modules:BringItemsFromAroundMap(Unit)
-    for _, v in pairs(workspace.Items:GetChildren()) do
+function Modules:BringItems(Unit)
+    if not Unit or type(Unit) == "nil" then return end;
+
+    local getsetting = Settings.BringType;
+    local rootpart = self:getCharacter()
+    local wsItems = workspace.Items:GetChildren();
+
+    for _,v in ipairs(wsItems) do
         if string.find(v.Name, Unit) then
-            local template = self:getRoot():GetPivot()
-            v:PivotTo(template)
-            sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
-            Heartbeat:Wait()
+            if v:IsA("Modle") then
+                if getsetting == "Once" then
+                    v:PivotTo(rootpart.CFrame * CFrame.new(0,3,0))
+                    break
+                elseif getsetting == "All" then
+                    v:PivotTo(rootpart.CFrame * CFrame.new(0,3,0))
+                end
+            end
         end
     end
 end
@@ -257,7 +242,6 @@ function Restorelighting()
         Lighting.ColorCorrection.Enabled = false
     end
 end
-
 local Window = Fluent:CreateWindow({
     Title = "99 Nights in the Forest",
     SubTitle = "By Syreiy",
@@ -268,7 +252,6 @@ local Window = Fluent:CreateWindow({
     Transparency = false,
     MinimizeKey = Enum.KeyCode.RightShift,
 })
-
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "component" }),
     Player = Window:AddTab({ Title = "Player", Icon = "user" }),
@@ -276,7 +259,6 @@ local Tabs = {
     Bring = Window:AddTab({ Title = "Bring Items", Icon = "box" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
-
 local TabMain = Tabs.Main:AddSection("Main") do
     local DistanceKillAuras = TabMain:AddSlider("Slider", {
         Title = "Distance Kill Auras",
@@ -286,40 +268,30 @@ local TabMain = Tabs.Main:AddSection("Main") do
         Max = 500,
         Rounding = 1,
         Callback = function(v)
-            callreiy["KillAura"]["Distance"] = math.floor(v)
+            Settings.Distance = math.floor(v)
         end
     })
     DistanceKillAuras:OnChanged(function(v)
-        callreiy["KillAura"]["Distance"] = math.floor(v)
+        Settings.Distance = math.floor(v)
     end)
     DistanceKillAuras:SetValue(25);
-    local AutoKillAura = TabMain:AddToggle("KillAuraletgo", {Title = "Auto kill aura", Default = false })
+    local AutoKillAura = TabMain:AddToggle("KillAuraletgo", {Title = "Kill Aura", Default = false })
     AutoKillAura:OnChanged(function(v)
-        callreiy["KillAura"]["Enabled"] = v
-    end)
-    local TRSelect_Area = TabMain:AddDropdown("", {
-        Title = "Select Area",
-        Values = {"Landmarks", "Foliage"},
-        Multi = false,
-        Default = 1,
-    })
-    TRSelect_Area:SetValue("Foliage")
-    TRSelect_Area:OnChanged(function(Value)
-        callreiy["Tree_Farm"]["Select_Area"] = Value
+        Settings.KillAura = v
     end)
     local FarmTree = TabMain:AddToggle("FarmTree", {Title = "Farm Tree", Description = "Equip axe first, Depending on your axe (work with small tree only)", Default = false })
     FarmTree:OnChanged(function(v)
-        callreiy["Tree_Farm"]["Enabled"] = v
+        Settings.AutoFarmTree = v
     end)
     local NoFogs = TabMain:AddToggle("Fog", {Title = "No Fog", Description = "unloaded chunk", Default = false })
     NoFogs:OnChanged(function(v)
-        callreiy["Fog"]["Enabled"] = v
+        Settings.No_Fog = v
     end)
     local SafePart = TabMain:AddToggle("SafePart", {Title = "Teleport to safe part", Description = "If disabled will teleport back to old position." ,Default = false })
     SafePart:OnChanged(function(v)
-        callreiy["SafePart"]["Enabled"] = v
-        if callreiy["SafePart"]["Enabled"] then
-            task.defer(function() --// make sure to save old position first and teleport
+        Settings.Sefe_Part = v
+        if Settings.Sefe_Part then
+            task.defer(function() --// make sure to save old position first
                 oldpos = Modules:getRoot().CFrame;
                 Modules:Teleport(getgenv().Part.CFrame * CFrame.new(0, 6, 0));
             end)
@@ -352,7 +324,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
             end)
         end
     })
-        TabMain:AddButton({
+    TabMain:AddButton({
         Title = "Collect All Coin Stack",
         Description = "",
         Callback = function()
@@ -375,7 +347,7 @@ local ToogleTypeSP = Playertab:AddDropdown("Speed Toggle", {
     })
     ToogleTypeSP:SetValue("ChangeSpeed")
     ToogleTypeSP:OnChanged(function(v)
-        callreiy["WalkSpeed"]["SpeedType"] = v
+        Settings.SpeedType = v
         if v ~= "BHop" then
             Modules:getHumanoid().UseJumpPower = true
         end
@@ -388,27 +360,27 @@ local ToogleTypeSP = Playertab:AddDropdown("Speed Toggle", {
         Max = 3,
         Rounding = 1,
         Callback = function(v)
-            callreiy["WalkSpeed"]["SetWalkSpeed"] = v / .4
+            Settings.WalkSpeedVal = v / .4
         end
     })
     SetSpeed:OnChanged(function(v)
-        callreiy["WalkSpeed"]["SetWalkSpeed"] = v / .4
+        Settings.WalkSpeedVal = v / .4
     end)
     local ToggleWalkSpeed = Playertab:AddToggle("", {Title = "Enable WalkSpeed", Default = false })
     ToggleWalkSpeed:OnChanged(function(v)
-        callreiy["WalkSpeed"]["Enabled"] = v
-        if not callreiy["WalkSpeed"]["Enabled"] then
+        Settings.WalkSpeed = v
+        if not Settings.WalkSpeed then
             Modules:ChangeSpeed(16)
         end
     end)
     local InfJump = Playertab:AddToggle("", {Title = "Enable Infinite Jump", Default = false })
     InfJump:OnChanged(function(v)
-        callreiy["InfJump"]["Enabled"] = v
+        Settings.InfJump = v
     end)
     local FullBrights = Playertab:AddToggle("", {Title = "Enable FullBright", Default = false })
     FullBrights:OnChanged(function(v)
-        callreiy["FullBright"]["Enabled"] = v
-        if not callreiy["FullBright"]["Enabled"] then
+        Settings.FullBright = v
+        if not Settings.FullBright then
             pcall(function()
                 Restorelighting()
             end)
@@ -416,18 +388,18 @@ local ToogleTypeSP = Playertab:AddDropdown("Speed Toggle", {
     end)
     local iyinstpp = Playertab:AddToggle("", {Title = "Enable Instant Prompts", Default = false })
     iyinstpp:OnChanged(function(v)
-        callreiy["InstPrompts"]["Enabled"] = v
+        Settings.InstPrompts = v
     end)
     local Nocliplol = Playertab:AddToggle("", {Title = "Enable Noclip", Default = false })
     Nocliplol:OnChanged(function(v)
-        callreiy["Noclip"]["Enabled"] = v
+        Settings.Noclip = v
     end)
 end
 local Espitemthing = Tabs.ESP:AddSection("") do
     local ToggleEso = Espitemthing:AddToggle("", {Title = "Enable Esp", Default = false })
     ToggleEso:OnChanged(function(v)
-        callreiy["ESP"]["Enabled"] = v
-        ESP:Toggle(callreiy["ESP"]["Enabled"])
+        Settings.ESP = v
+        ESP:Toggle(Settings.ESP)
     end)
     local espchest = Espitemthing:AddToggle("", {Title = "Esp Chest", Default = false })
     espchest:OnChanged(function(v)
@@ -441,7 +413,7 @@ local Espitemthing = Tabs.ESP:AddSection("") do
                         Color = Color3.new(0.992156, 0.792156, 0),
                         IsEnabled = "Chest"
                     })
-                    ESP.Chest = callreiy["ESP"]["Enabled"]
+                    ESP.Chest = Settings.ESP
                 end
             end
         end
@@ -452,6 +424,16 @@ local Bringtarr = Tabs.Bring:AddSection("Bring") do
         Title = "::Warning::",
         Content = "Don't bring items too close Crafting table or campfire, It will glitch"
     })
+    local BringType = Tabs.Main:AddDropdown("Dropdown", {
+        Title = "Bring method",
+        Values = {"Once","All"},
+        Multi = false,
+        Default = 1,
+    })
+    BringType:SetValue("Once")
+    BringType:OnChanged(function(Value)
+        Settings.BringType = Value
+    end)
     local Scrappable = Bringtarr:AddDropdown("", {
         Title = "Scrappable Items",
         Description = "",
@@ -473,7 +455,7 @@ local Bringtarr = Tabs.Bring:AddSection("Bring") do
             pcall(function()
                 for _,v in pairs(workspace.Items:GetChildren()) do
                     if table.find(getgenv().Setecteditem, v.Name) then
-                        Modules:BringItemsFromAroundMap(v.Name)
+                        Modules:BringItems(v.Name)
                     end 
                 end
             end)
@@ -500,79 +482,65 @@ local Bringtarr = Tabs.Bring:AddSection("Bring") do
             pcall(function()
                 for _,v in pairs(workspace.Items:GetChildren()) do
                     if table.find(getgenv().FuelBir, v.Name) then
-                        Modules:BringItemsFromAroundMap(v.Name)
+                        Modules:BringItems(v.Name)
                     end 
                 end
             end)
         end
     })
 end
-if getgenv().MainCore then getgenv().MainCore = nil end
-spawn(function()
-    getgenv().MainCore = {}
-    MainCore[1] = Controller:newThread(nil, function()
+do
+    local Threads = {};
+
+    Threads[1] = Controller:newThread(nil, function()
         pcall(function()
-            if callreiy["KillAura"]["Enabled"] then
-               Modules:KillAura() 
+            if Settings.KillAura then
+               Modules:KillAura()
             end
         end)
     end)
-    MainCore[2] = Controller:newThread(nil, function()
+    Threads[2] = Controller:newThread(nil, function()
         pcall(function()
-            if callreiy["Tree_Farm"]["Enabled"] then
-                if callreiy["Tree_Farm"]["Select_Area"] == "Foliage" then
-                    for _,v in pairs(workspace.Map.Foliage:GetChildren()) do
-                        if string.find(v.Name:lower(), "small tree") then
-                            local args = {
-                                v,
-                                LocalPlayer.Inventory:FindFirstChild(Modules:GetPlayerEquipped()),
-                                "1",
-                                CFrame.new()
-                            }
-                            ToolDamageObject:InvokeServer(unpack(args))
-                        end
-                    end
-                elseif callreiy["Tree_Farm"]["Select_Area"] == "Landmarks" then
-                    for _,v in pairs(workspace.Map.Landmarks:GetChildren()) do
-                        if string.find(v.Name:lower(), "small tree") then
-                            local args = {
-                                v,
-                                LocalPlayer.Inventory:FindFirstChild(Modules:GetPlayerEquipped()),
-                                "1",
-                                CFrame.new()
-                            }
-                            ToolDamageObject:InvokeServer(unpack(args))
-                        end
+            if Settings.AutoFarmTree then
+                for _,v in pairs(workspace.Map.Foliage:GetChildren()) do
+                    if string.find(v.Name:lower(), "small tree") then
+                        local args = {
+                            v,
+                            LocalPlayer.Inventory:FindFirstChild(Modules:GetPlayerEquipped()),
+                            "1",
+                            CFrame.new()
+                        }
+                        ToolDamageObject:InvokeServer(unpack(args))
                     end
                 end
             end
         end)
     end)
-    MainCore[3] = Controller:newThread(nil, function()
+    Threads[3] = Controller:newThread(nil, function()
         pcall(function()
-            if callreiy["WalkSpeed"]["Enabled"] then
-                if callreiy["WalkSpeed"]["SpeedType"] == "CFrame" then
+            if Settings.WalkSpeed then
+                if Settings.SpeedType == "CFrame" then
                     Modules:getRoot().CFrame =
                     Modules:getRoot().CFrame +
-                    Modules:getHumanoid().MoveDirection * callreiy["WalkSpeed"]["SetWalkSpeed"]
-                elseif callreiy["WalkSpeed"]["SpeedType"] == "BHop" then
+                    Modules:getHumanoid().MoveDirection * Settings.WalkSpeedVal
+                elseif Settings.SpeedType == "BHop" then
                     Modules:getRoot().CFrame =
                     Modules:getRoot().CFrame +
-                    Modules:getHumanoid().MoveDirection * callreiy["WalkSpeed"]["SetWalkSpeed"]
+                    Modules:getHumanoid().MoveDirection * Settings.WalkSpeedVal
                     if Modules:getHumanoid().MoveDirection.Magnitude > 0 and Modules:getState() ~= Enum.HumanoidStateType.Freefall then
                         Modules:getHumanoid().UseJumpPower = false
                         Modules:changeState(Enum.HumanoidStateType.Jumping)
                     end
-                elseif callreiy["WalkSpeed"]["SpeedType"] == "ChangeSpeed" then
-                    local Multiple = callreiy["WalkSpeed"]["SetWalkSpeed"] * callreiy["WalkSpeed"]["SetWalkSpeed"] * 60
+                elseif Settings.SpeedType == "ChangeSpeed" then
+                    local Multiple = Settings.WalkSpeedVal * Settings.WalkSpeedVal * 60
                     Modules:ChangeSpeed(Multiple)
                 end
             end
         end)
     end)
-    MainCore[4] = Controller:newThread(nil, function()
+    Threads[4] = Controller:newThread(nil, function()
         pcall(function()
-            if callreiy["FullBright"]["Enabled"] then
+            if Settings.FullBright then
                 Lighting.Brightness = 2
                 Lighting.ClockTime = 14
                 Lighting.FogEnd = 100000
@@ -584,8 +552,8 @@ spawn(function()
             end
         end)
     end)
-    MainCore[5] = Controller:newThread(.5, function()
-        if callreiy["Fog"]["Enabled"] then
+    Threads[5] = Controller:newThread(.5, function()
+        if Settings.No_Fog then
             for _,v in pairs(workspace.Map.Boundaries:GetChildren()) do
                 if v:IsA("Part") then
                     Modules:FireTouchPart(v)
@@ -593,30 +561,13 @@ spawn(function()
             end
         end
     end)
-    -- MainCore[6] = Controller:newThread(1, function()
-    --     if getgenv().Esp_Chest then
-    --         pcall(function()
-    --             for _,v in pairs(workspace.Items:GetChildren()) do
-    --                 if string.find(v.Name, "Item Chest") then
-    --                     ESP:AddObjectListener(v, {
-    --                         Name = "ChestLid",
-    --                         CustomName = "Chest",
-    --                         Color = Color3.new(0.992156, 0.792156, 0),
-    --                         IsEnabled = "Chest"
-    --                     })
-    --                     ESP.Chest = callreiy["ESP"]["Enabled"]
-    --                 end
-    --             end
-    --         end)
-    --     end
-    -- end)
-end)
+end
 
 PromptButtonHoldBegan = nil
 local ProximityPromptService = cloneref(game:GetService("ProximityPromptService"))
 do
     PromptButtonHoldBegan = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
-        if callreiy["InstPrompts"]["Enabled"] and Modules:getCharacter() and fireproximityprompt then
+        if Settings.InstPrompts and Modules:getCharacter() and fireproximityprompt then
             fireproximityprompt(prompt)
         end
     end)
@@ -624,7 +575,7 @@ end
 local infjp
 do
     infjp = UserInputService.InputBegan:Connect(function(iobj, gp)
-        if not IsOnMobile and not gp and callreiy["InfJump"]["Enabled"] then
+        if not IsOnMobile and not gp and Settings.InfJump then
             if iobj.KeyCode == Enum.KeyCode.Space and LocalPlayer.Character then
                 local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
@@ -637,7 +588,7 @@ end
 local inf_mb
 do
     inf_mb = UserInputService.JumpRequest:Connect(function()
-        if IsOnMobile and callreiy["InfJump"]["Enabled"] then
+        if IsOnMobile and Settings.InfJump then
             local hum = Modules:getHumanoid()
             hum:ChangeState("Seated")
             wait()
@@ -652,18 +603,18 @@ spawn(function()
             ESP:AddObjectListener(c, {
                 Name = "ChestLid",
                 CustomName = "Chest",
-                Color = Color3.new(0.992156, 0.792156, 0),
+                Color = Color3.new(0.552941, 0.588235, 0.996078),
                 IsEnabled = "Chest"
             })
-            ESP.Chest = callreiy["ESP"]["Enabled"]
+            ESP.Chest = Settings.ESP
         end
     end)
 end)
 local newindex
 do
     newindex = hookmetamethod(game, "__newindex", function(self, i, v)
-        if i == "WalkSpeed" and callreiy["WalkSpeed"]["Enabled"] and self.ClassName == "Humanoid" and self.Parent == Modules:getCharacter() and not checkcaller() then
-            v = callreiy["WalkSpeed"]["SetWalkSpeed"]
+        if i == "WalkSpeed" and Settings.WalkSpeed and self.ClassName == "Humanoid" and self.Parent == Modules:getCharacter() and not checkcaller() then
+            v = Settings.WalkSpeedVal
         end
         return newindex(self, i, v)
     end)
@@ -671,14 +622,15 @@ end
 
 local lastpos
 local antifall
+local PartDestroyHeight = game:GetService("Workspace").FallenPartsDestroyHeight
 spawn(function()
     antifall = PreSimulation:Connect(function()
         local Root = Modules:getRoot();
         local Hamnid = Modules:getHumanoid();
 
         lastpos = Hamnid.FloorMaterial ~= Enum.Material.Air and Root.Position or lastpos
-        if (Root.Position.Y + (Root.Velocity.Y * 0.016)) <= (workspace.FallenPartsDestroyHeight + 10) then
-            lastpos = lastpos or Vector3.new(Root.Position.X, (workspace.FallenPartsDestroyHeight + 20), Root.Position.Z)
+        if (Root.Position.Y + (Root.Velocity.Y * 0.016)) <= (PartDestroyHeight + 10) then
+            lastpos = lastpos or Vector3.new(Root.Position.X, (PartDestroyHeight + 20), Root.Position.Z)
             Root.CFrame += (lastpos - Root.Position)
             Root.Velocity *= Vector3.new(1, 0, 1)
             Fluent:Notify({
@@ -693,7 +645,7 @@ local toUndo = {}
 spawn(function()
     Stepped:Connect(function()
         local Char = Modules:getCharacter()
-        if callreiy["Noclip"]["Enabled"] and Char then
+        if Settings.Noclip and Char then
 			for i,v in pairs(Char:GetDescendants()) do
 				if v:IsA("BasePart") and v.CanCollide then
 					v.CanCollide = false
@@ -708,6 +660,30 @@ spawn(function()
 		end
     end)
 end)
+--anti afk--
+spawn(function()
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end)
+NO_VIRTUALIZE(function()
+	task.spawn(function()
+		while task.wait() do
+			if setscriptable then
+				setscriptable(LocalPlayer, "SimulationRadius", true)
+			end
+			if sethiddenproperty then
+				sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+                sethiddenproperty(LocalPlayer, "MaxSimulationRadius", math.huge)
+            else
+                LocalPlayer.setsimulationradius(math.huge);
+                LocalPlayer.MaxSimulationRadius = math.huge;
+                LocalPlayer.SimulationRadius = math.huge;
+			end
+		end
+	end)
+end)()
 
 local Old = os.time()
 Settings_M = Tabs.Settings:AddSection("Misc") do
@@ -782,9 +758,6 @@ Settings_M = Tabs.Settings:AddSection("Misc") do
 end
 
 local Timer;Timer = Heartbeat:Connect(function()
-    if getgenv().Disconnect then
-        Timer:Disconnect();Timer = nil;
-    end
     pcall(function()
         local TimeSinceLastPlay = os.time() - Old
         local hours = tostring(math.floor(TimeSinceLastPlay / 3600))
