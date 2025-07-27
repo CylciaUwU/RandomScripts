@@ -1,12 +1,24 @@
-LoadingTime = tick()
-
--- if getgenv().Syreiy and not shared.DEBUG == true then
+-- if getgenv().Syreiy and not _G.DEBUG == true then
 --     return
 -- end
 
--- pcall(function() getgenv().Syreiy = true end)
+-- pcall(function() getgenv().Syreiy = true end);
+getgenv().Disable_Connect = {}
 if not game:IsLoaded() then game.Loaded:Wait() end; warn("Hello :3")
 
+do if game.PlaceId == 79546208627805 then return game:GetService"Players"["LocalPlayer"]:Kick("Lobby detected. Please join the actual game.") end end
+
+function missing(t, f, fallback)
+    if type(f) == t then return f end
+    return fallback
+end
+
+cloneref = missing("function", cloneref, function(...) return ... end)
+firetouchinterest = missing("function", firetouchinterest)
+hookmetamethod = missing("function", hookmetamethod)
+checkcaller = missing("function", checkcaller, function() return false end)
+setthreadidentity = missing("function", setthreadidentity or (syn and syn.set_thread_identity) or syn_context_set or setthreadcontext)
+local LoadingTime = tick();
 local Modules = {};
 Modules.__index = Modules;
 
@@ -14,69 +26,64 @@ local Settings = {
     KillAura = false,
     Distance = 25,
     AutoFarmTree = false,
+    AutoCookedItem = false,
     No_Fog = false,
     Sefe_Part = false,
     WalkSpeed = false,
     WalkSpeedVal = .3,
     SpeedType = "ChangeSpeed",
-    BringType = "Once", -- once, All
     Noclip = false,
     InfJump = false,
     FullBright = false,
     InstPrompts = false,
     ESP = false,
+    SetChildren = "Dino Kid",
 }
 
 local RepitationThread = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/ea277c117164f82fb40016246ba6a9ad/raw/eb0502cf8ad85b70a7b24e92227f37e717eb8111/RepitationThread.luau"))();
+-- local Hooks = loadstring(game:HttpGet("https://raw.githubusercontent.com/ClassicSenior/Hooks/main/hooks.lua"),true)();
 local Controller = RepitationThread.new();
 local random = math.random;
-local char = string.char;
-local NO_VIRTUALIZE = (function(...) return ... end)
+-- local char = string.char; --// not using for now
+local NO_VIRTUALIZE = (function(...) return ... end);
 
 local ESP = loadstring(game:HttpGet("https://kiriot22.com/releases/ESP.lua"))();
 ESP.Players = false;
 ESP.Boxes = false;
 ESP.Names = true;
 
-function missing(t, f, fallback)
-    if type(f) == t then return f end
-    return fallback
-end
-
-cloneref = missing("function", cloneref, function(...) return ... end);
-firetouchinterest = missing("function", firetouchinterest);
-
---// Services
 local Players = cloneref(game:GetService("Players"));
 local LocalPlayer = cloneref(Players.LocalPlayer);
 local Lighting = cloneref(game:GetService("Lighting"));
 local RunService = cloneref(game:GetService("RunService"));
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"));
+local TeleportService = cloneref(game:GetService("TeleportService"))
 -- local VirtualInputManager = cloneref(game:GetService("VirtualInputManager"));
 local VirtualUser = cloneref(game:GetService("VirtualUser"));
 local UserInputService = cloneref(game:GetService("UserInputService"));
 
---// Variable
 local PlayersGui = LocalPlayer:FindFirstChildWhichIsA("PlayerGui");
-local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents");
-local RequestOpenItemChest = RemoteEvents["RequestOpenItemChest"];
-local ToolDamageObject = RemoteEvents["ToolDamageObject"];
+local RemoteEvents = ReplicatedStorage["RemoteEvents"];
+local RemoteEventsCaller = {
+    ["RequestOpenItemChest"] = RemoteEvents["RequestOpenItemChest"],
+    ["RequestCollectCoints"] = RemoteEvents["RequestCollectCoints"],
+    ["RequestCookItem"] = RemoteEvents["RequestCookItem"],
+    ["ToolDamageObject"] = RemoteEvents["ToolDamageObject"]
+}
 local Heartbeat, Stepped, RenderStepped, PreSimulation = RunService.Heartbeat, RunService.Stepped, RunService.RenderStepped, RunService.PreSimulation;
 local IsOnMobile = table.find({Enum.Platform.Android, Enum.Platform.IOS}, UserInputService:GetPlatform());
 
-local Fluent = nil
-Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))();
--- SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))();
-InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))();
+local Fluent = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/4ce60ba116cb52855f282a7f50b1866b/raw/99adeed59d839b7beb7ccff8de6779599adb234e/Fluent.lua"))();
+-- local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))();
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))();
 local Options = Fluent.Options;
 
 while not LocalPlayer do
 	wait()
 	LocalPlayer = cloneref(Players.LocalPlayer)
 end
--- local WhatExecutor = tostring(identifyexecutor());
-local isDebug = false
-isDebug = true
+local isDebug = false;
+isDebug = true;
 local debugprint, debugwarn; do
 	local p,w = print,warn
 	debugprint = function(...)
@@ -87,7 +94,6 @@ local debugprint, debugwarn; do
 	end
 end
 
---//Safe part
 spawn(function()
     local no_part,yes_part = pcall(function()
         assert(not getgenv().Safe_Part)
@@ -105,17 +111,31 @@ spawn(function()
     end)
 end)
 
-function Modules:getCharacter(plr, yield) --// get Character From LocalPlayer
-    local plr = plr or LocalPlayer
-    return plr.Character or yield and plr.CharacterAdded:Wait()
+local Blacklist = { --// use :lower() instead
+    "pelt trader",
+    "deer",
+    "lost child"
+}
+local origsettings = {
+	abt = Lighting.Ambient,
+	oabt = Lighting.OutdoorAmbient,
+	brt = Lighting.Brightness,
+	time = Lighting.ClockTime,
+	fe = Lighting.FogEnd,
+	fs = Lighting.FogStart,
+	gs = Lighting.GlobalShadows
+}
+function tostr(Str)
+    return tostring(Str)
 end
-function Modules:getRoot() --// get HumanoidRootPart From Character
+function Modules:getCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+function Modules:getRoot()
     return self:getCharacter():FindFirstChild("HumanoidRootPart");
 end
-function Modules:getHumanoid(plr, yield)
-    local plr = plr or LocalPlayer
-    local char = self:getCharacter(plr, yield)
-    return yield and char:WaitForChild("Humanoid") or char:FindFirstChildWhichIsA("Humanoid")
+function Modules:getHumanoid()
+    return self:getCharacter():WaitForChild("Humanoid",9e9) or self:getCharacter():FindFirstChildWhichIsA("Humanoid",9e9)
 end
 function Modules:getState()
     return self:getHumanoid():GetState()
@@ -128,8 +148,19 @@ function Modules:changeState(State)
         return debugwarn("Failed to change state", failed)
     end
 end
-function Modules:Teleport(_CFRAME_)
-    return self:getCharacter():PivotTo(_CFRAME_)
+function Modules:Teleport(Position)
+    local RealtargetPos = {Position}
+	local targetPos = RealtargetPos[1]
+	local RealTarget
+	if type(targetPos) == "vector" then
+		RealTarget = CFrame.new(targetPos)
+	elseif type(targetPos) == "userdata" then
+		RealTarget = targetPos
+	elseif type(targetPos) == "number" then
+		RealTarget = CFrame.new(unpack(RealtargetPos))
+	end
+
+    return self:getCharacter():PivotTo(RealTarget)
 end
 function Modules:ChangeSpeed(Val)
     if not Val then return end;
@@ -139,7 +170,7 @@ function Modules:ChangeSpeed(Val)
         Humanoid["WalkSpeed"] = Val
     end
 end
-function Modules:FireTouchPart(Part: BasePart)
+function Modules:FireTouchPart(Part)
 	local TouchTransmitter = Part:FindFirstChildOfClass("TouchTransmitter")
 	if not TouchTransmitter then return end
 
@@ -152,29 +183,26 @@ function Modules:FireTouchPart(Part: BasePart)
         return debugwarn("Missing HumanoidRootPart or firetouchinterest function.")
     end
 end
-local Blacklist = {
-    "pelt trader",
-    "deer",
-    "lost child"
-}
 function Modules:GetClosestMob()
     local dist = Settings.Distance or 1/0
     local closest_mob
 
     for _, v in pairs(workspace.Characters:GetChildren()) do
-        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
-            if not table.find(Blacklist, v.Name:lower()) then
+        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then --// can't check humanoid by name
+            local Humanoid = v:FindFirstChildWhichIsA("Humanoid")
+            if not table.find(Blacklist, v.Name:lower()) and Humanoid.Health > 0 then
                 local Hum = v:FindFirstChild("HumanoidRootPart")
-                local DistanceFromTarget = Hum and LocalPlayer:DistanceFromCharacter(Hum.CFrame.Position)
+                -- local DistanceFromTarget = Hum and LocalPlayer:DistanceFromCharacter(Hum.CFrame.Position)
+                local MagI = (Hum and Hum.Position - self:getRoot().Position).Magnitude
 
-                if DistanceFromTarget and DistanceFromTarget <= dist then
-                    dist = DistanceFromTarget
+                if MagI and MagI <= dist then
+                    dist = MagI
                     closest_mob = v
                 end
             end
         end
     end
-    return closest_mob,dist
+    return closest_mob, dist
 end
 -- function Modules:GetHitRegisters()local HitRegister=nil;for _,v in ipairs(workspace.Characters:GetChildren())do if v:IsA("Model")and v:FindFirstChild("HumanoidRootPart")then local _HitRegisters=v:FindFirstChild("HitRegisters")local HasAttributes=_HitRegisters:GetAttributes()for index,v2 in next,HasAttributes do if index then HitRegister=index;break end end end end;return HitRegister or"nil"end;function Modules:GetTargetByHitRegister(HitRegister)if not HitRegister then return end;for _,v in ipairs(workspace.Characters:GetChildren())do if v:IsA("Model")and v:FindFirstChild("HumanoidRootPart")then local _HitRegisters=v:FindFirstChild("HitRegisters")local GetAttributes=_HitRegisters:GetAttributes(HitRegister)if GetAttributes and GetAttributes[HitRegister]then return v end end end end;function Modules:GetWeapons()for _,v in pairs(LocalPlayer.Inventory:GetChildren())do if v:IsA("Model")and v:GetAttribute("ToolName")then if v:GetAttribute("ToolName")=="GenericSword"then return v.Name elseif v:GetAttribute("ToolName")=="GenericAxe"then return v.Name end end end end
 function Modules:GetPlayerEquipped()
@@ -206,29 +234,26 @@ function Modules:KillAura()
 
     if not success then return end
 
-    return ToolDamageObject:InvokeServer(unpack(args));
+    return RemoteEventsCaller.ToolDamageObject:InvokeServer(unpack(args));
 end
 function Modules:BringItems(Unit)
-    if not Unit or type(Unit) == "nil" then return end;
+    if not Unit then return end;
 
-    local getsetting = Settings.BringType;
-    local rootpart = self:getCharacter()
+    local rootpart = self:getRoot()
     local wsItems = workspace.Items:GetChildren();
 
-    for _,v in ipairs(wsItems) do
-        if string.find(v.Name, Unit) then
-            if v:IsA("Modle") then
-                if getsetting == "Once" then
-                    v:PivotTo(rootpart.CFrame * CFrame.new(0,3,0))
-                    break
-                elseif getsetting == "All" then
-                    v:PivotTo(rootpart.CFrame * CFrame.new(0,3,0))
-                end
+    local success, callback = pcall(function()
+        for _,v in pairs(wsItems) do
+            if string.find(v.Name, Unit) then
+                v:PivotTo(rootpart:GetPivot() * CFrame.new(0, 6, 0))
             end
         end
+    end)
+
+    if ((callback) or not success) then
+        return debugwarn("Failed to bring items:", callback or "Huh?")
     end
 end
-origsettings = {abt = Lighting.Ambient, oabt = Lighting.OutdoorAmbient, brt = Lighting.Brightness, time = Lighting.ClockTime, fe = Lighting.FogEnd, fs = Lighting.FogStart, gs = Lighting.GlobalShadows}
 function Restorelighting()
     Lighting.Ambient = origsettings.abt;
 	Lighting.OutdoorAmbient = origsettings.oabt;
@@ -243,7 +268,7 @@ function Restorelighting()
     end
 end
 local Window = Fluent:CreateWindow({
-    Title = "99 Nights in the Forest",
+    Title = "99 Nights in the Forest | Updating",
     SubTitle = "By Syreiy",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
@@ -255,7 +280,9 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "component" }),
     Player = Window:AddTab({ Title = "Player", Icon = "user" }),
-    ESP = Window:AddTab({ Title = "Esp", Icon = "" }),
+    Status = Window:AddTab({ Title = "Status", Icon = "cloud-fog" }),
+    MissingChild = Window:AddTab({ Title = "Missing Child", Icon = "smile-plus" }),
+    ESP = Window:AddTab({ Title = "Esp", Icon = "eye" }),
     Bring = Window:AddTab({ Title = "Bring Items", Icon = "box" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
@@ -265,7 +292,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
         Description = "",
         Default = 25,
         Min = 15,
-        Max = 500,
+        Max = 150,
         Rounding = 1,
         Callback = function(v)
             Settings.Distance = math.floor(v)
@@ -282,6 +309,10 @@ local TabMain = Tabs.Main:AddSection("Main") do
     local FarmTree = TabMain:AddToggle("FarmTree", {Title = "Farm Tree", Description = "Equip axe first, Depending on your axe (work with small tree only)", Default = false })
     FarmTree:OnChanged(function(v)
         Settings.AutoFarmTree = v
+    end)
+    local AutoCookedItem = TabMain:AddToggle("AutoCookedItem", {Title = "Auto Cooked Meat", Description = "Steak, Morsel", Default = false })
+    AutoCookedItem:OnChanged(function(v)
+        Settings.AutoCookedItem = v
     end)
     local NoFogs = TabMain:AddToggle("Fog", {Title = "No Fog", Description = "unloaded chunk", Default = false })
     NoFogs:OnChanged(function(v)
@@ -318,7 +349,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
             pcall(function()
                 for _,v in pairs(workspace.Items:GetChildren()) do
                     if string.find(v.Name, "Item Chest") then
-                        RequestOpenItemChest:FireServer(v)
+                        RemoteEventsCaller.RequestOpenItemChest:FireServer(v)
                     end
                 end
             end)
@@ -331,7 +362,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
             pcall(function()
                 for _,v in ipairs(workspace.Items:GetChildren()) do
                     if string.find("coin stack", v.Name:lower()) then
-                        RemoteEvents:WaitForChild("RequestCollectCoints"):InvokeServer(v)
+                        RemoteEventsCaller.RequestCollectCoints:InvokeServer(v)
                     end
                 end
             end)
@@ -339,32 +370,32 @@ local TabMain = Tabs.Main:AddSection("Main") do
     })
 end
 local Playertab = Tabs.Player:AddSection("") do
-local ToogleTypeSP = Playertab:AddDropdown("Speed Toggle", {
-        Title = "Type WalkSpeed",
-        Values = {"ChangeSpeed","CFrame","BHop"},
-        Multi = false,
-        Default = 1,
-    })
-    ToogleTypeSP:SetValue("ChangeSpeed")
-    ToogleTypeSP:OnChanged(function(v)
-        Settings.SpeedType = v
-        if v ~= "BHop" then
-            Modules:getHumanoid().UseJumpPower = true
-        end
-    end)
+    -- local ToogleTypeSP = Playertab:AddDropdown("Speed Toggle", {
+    --     Title = "Type WalkSpeed",
+    --     Values = {"ChangeSpeed","CFrame","BHop"},
+    --     Multi = false,
+    --     Default = 1,
+    -- })
+    -- ToogleTypeSP:SetValue("ChangeSpeed")
+    -- ToogleTypeSP:OnChanged(function(v)
+    --     Settings.SpeedType = v
+    --     if v ~= "BHop" then
+    --         Modules:getHumanoid().UseJumpPower = true
+    --     end
+    -- end)
     local SetSpeed = Playertab:AddSlider("", {
         Title = "Speed",
         Description = "",
-        Default = .1,
-        Min = .1,
-        Max = 3,
+        Default = 16,
+        Min = 16,
+        Max = 100,
         Rounding = 1,
         Callback = function(v)
-            Settings.WalkSpeedVal = v / .4
+            Settings.WalkSpeedVal = v * 1.5
         end
     })
     SetSpeed:OnChanged(function(v)
-        Settings.WalkSpeedVal = v / .4
+        Settings.WalkSpeedVal = v * 1.5
     end)
     local ToggleWalkSpeed = Playertab:AddToggle("", {Title = "Enable WalkSpeed", Default = false })
     ToggleWalkSpeed:OnChanged(function(v)
@@ -382,7 +413,7 @@ local ToogleTypeSP = Playertab:AddDropdown("Speed Toggle", {
         Settings.FullBright = v
         if not Settings.FullBright then
             pcall(function()
-                Restorelighting()
+                spawn(Restorelighting)
             end)
         end
     end)
@@ -410,7 +441,7 @@ local Espitemthing = Tabs.ESP:AddSection("") do
                     ESP:AddObjectListener(v, {
                         Name = "ChestLid",
                         CustomName = "Chest",
-                        Color = Color3.new(0.992156, 0.792156, 0),
+                        Color = Color3.new(0.403921, 0.494117, 1),
                         IsEnabled = "Chest"
                     })
                     ESP.Chest = Settings.ESP
@@ -419,21 +450,92 @@ local Espitemthing = Tabs.ESP:AddSection("") do
         end
     end)
 end
-local Bringtarr = Tabs.Bring:AddSection("Bring") do
-    BossNormal = Bringtarr:AddParagraph({
-        Title = "::Warning::",
-        Content = "Don't bring items too close Crafting table or campfire, It will glitch"
+Statthing = {}
+local Statusshity = Tabs.Status:AddSection("") do
+    Statthing.MotherShip = Statusshity:AddParagraph({
+        Title = "AlienMotherShipCFrame",
+        Content = "N/A"
     })
-    local BringType = Tabs.Main:AddDropdown("Dropdown", {
-        Title = "Bring method",
-        Values = {"Once","All"},
+    Statusshity:AddButton({
+        Title = "Teleport to Alien MotherShip",
+        Description = "",
+        Callback = function()
+            pcall(function()
+                Modules:Teleport(workspace:GetAttribute('AlienMothershipCF'))
+            end)
+        end
+    })
+    Statthing.IsCultistAttack = Statusshity:AddParagraph({
+        Title = "CultistAttackDay",
+        Content = "N/A"
+    })
+    Statthing.Progress = Statusshity:AddParagraph({
+        Title = "Progress (Campfire LvL)",
+        Content = "N/A"
+    })
+    Statthing.Fuel_Remaining = Statusshity:AddParagraph({
+        Title = "Progress: Fuel Remaining",
+        Content = "N/A"
+    })
+    Statthing.Weather = Statusshity:AddParagraph({
+        Title = "Weather",
+        Content = "N/A"
+    })
+    -- Statthing[2] = Statusshity:AddParagraph({
+    --     Title = "",
+    --     Content = "N/A"
+    -- })
+end
+StatusKid = {}
+local MissingChildren = Tabs.MissingChild:AddSection("Missing Child") do
+    local MissingKids = workspace["Map"]["MissingKids"];
+
+    StatusKid.DinoKid = MissingChildren:AddParagraph({
+        Title = "Dino Kid",
+        Content = "N/A"
+    })
+    StatusKid.KrakenKid = MissingChildren:AddParagraph({
+        Title = "Kraken Kid",
+        Content = "N/A"
+    })
+    StatusKid.SquidKid = MissingChildren:AddParagraph({
+        Title = "Squid Kid",
+        Content = "N/A"
+    })
+    StatusKid.KoalaKid = MissingChildren:AddParagraph({
+        Title = "Koala Kid",
+        Content = "N/A"
+    })
+    local SelectChildren = MissingChildren:AddDropdown("howtoanmeis", {
+        Title = "Select Children",
+        Values = {"Dino Kid","Kraken Kid","Squid Kid","Koala Kid"},
         Multi = false,
         Default = 1,
     })
-    BringType:SetValue("Once")
-    BringType:OnChanged(function(Value)
-        Settings.BringType = Value
-    end)
+    Options.howtoanmeis:SetValue(false)
+    SelectChildren:OnChanged(function(v)
+        Settings.SetChildren = v
+        if Settings.SetChildren == nil then return end
+
+        -- pcall(function()
+            if Settings.SetChildren == "Dino Kid" then
+                Modules:Teleport(MissingKids:GetAttribute('DinoKid'))
+            elseif Settings.SetChildren == "Kraken Kid" then
+                Modules:Teleport(MissingKids:GetAttribute('KrakenKid'))
+            elseif Settings.SetChildren == "Squid Kid" then
+                Modules:Teleport(MissingKids:GetAttribute('SquidKid'))
+            elseif Settings.SetChildren == "Koala Kid" then
+                Modules:Teleport(MissingKids:GetAttribute('KoalaKid'))
+            end
+        end)
+    -- end)
+
+end
+local Bringtarr = Tabs.Bring:AddSection("Bring") do
+    Warningtext = Bringtarr:AddParagraph({
+        Title = "::Warning::",
+        Content = "Don't bring items too close Crafting table or campfire, It will glitch"
+    })
     local Scrappable = Bringtarr:AddDropdown("", {
         Title = "Scrappable Items",
         Description = "",
@@ -475,7 +577,7 @@ local Bringtarr = Tabs.Bring:AddSection("Bring") do
         end
         getgenv().FuelBir = Fuelcm
     end)
-        Bringtarr:AddButton({
+    Bringtarr:AddButton({
         Title = "Bring",
         Description = "Fuel",
         Callback = function()
@@ -488,19 +590,89 @@ local Bringtarr = Tabs.Bring:AddSection("Bring") do
             end)
         end
     })
-end
-do
-    local Threads = {};
+    Bringtarr:AddButton({
+        Title = "Bring Tool Type",
+        Description = "",
+        Callback = function()
+            pcall(function()
+                for _,v in pairs(workspace.Items:GetChildren()) do
+                    local IsTool = v:GetAttribute('Interaction') == "Tool";
+                    local Distance = (v.PrimaryPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude;
 
-    Threads[1] = Controller:newThread(nil, function()
+                    if IsTool and Distance >= 50 then
+                        Modules:BringItems(v.Name)
+                    end
+                end
+            end)
+        end
+    })
+    Bringtarr:AddButton({
+        Title = "Bring Armour Type",
+        Description = "",
+        Callback = function()
+            pcall(function()
+                for _,v in pairs(workspace.Items:GetChildren()) do
+                    local IsArmour = v:GetAttribute('Interaction') == "Armour";
+                    local Distance = (v.PrimaryPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude;
+
+                    if IsArmour and Distance >= 50 then
+                        Modules:BringItems(v.Name)
+                    end
+                end
+            end)
+        end
+    })
+    Bringtarr:AddButton({
+        Title = "Bring Food",
+        Description = "Only bring food is cook",
+        Callback = function()
+            pcall(function()
+                for _,v in pairs(workspace.Items:GetChildren()) do
+                    local Is_HasMeat = v:GetAttribute('HasMeat') == true;
+                    local Distance = (v.PrimaryPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude;
+
+                    if Is_HasMeat and Distance >= 50 then
+                        Modules:BringItems(v.Name)
+                    end
+                end
+            end)
+        end
+    })
+end
+
+getgenv().Threads = {};
+
+do
+    Threads.Aura = Controller:newThread(nil, function()
         pcall(function()
+            if getgenv().Disable_Connect == nil then
+                Controller:removeThread(Threads.Aura)
+            end
             if Settings.KillAura then
                Modules:KillAura()
             end
         end)
     end)
-    Threads[2] = Controller:newThread(nil, function()
+    Threads.Meat = Controller:newThread(nil, function()
         pcall(function()
+            if getgenv().Disable_Connect == nil then
+                Controller:removeThread(Threads.Meat)
+            end
+            if Settings.AutoCookedItem then
+                for _,v in pairs(workspace.Items:GetChildren()) do
+                    local getCookable = v:GetAttribute('Cookable') == true
+                    if getCookable then
+                        RemoteEventsCaller.RequestCookItem:FireServer(workspace.Map.Campground.MainFire, v)
+                    end
+                end
+            end
+        end)
+    end)
+    Threads.Tree = Controller:newThread(nil, function()
+        pcall(function()
+            if getgenv().Disable_Connect == nil then
+                Controller:removeThread(Threads.Tree)
+            end
             if Settings.AutoFarmTree then
                 for _,v in pairs(workspace.Map.Foliage:GetChildren()) do
                     if string.find(v.Name:lower(), "small tree") then
@@ -510,36 +682,27 @@ do
                             "1",
                             CFrame.new()
                         }
-                        ToolDamageObject:InvokeServer(unpack(args))
+                        RemoteEventsCaller.ToolDamageObject:InvokeServer(unpack(args))
                     end
                 end
             end
         end)
     end)
-    Threads[3] = Controller:newThread(nil, function()
+    Threads.WsSpeed = Controller:newThread(nil, function()
         pcall(function()
+            if getgenv().Disable_Connect == nil then
+                Controller:removeThread(Threads.WsSpeed)
+            end
             if Settings.WalkSpeed then
-                if Settings.SpeedType == "CFrame" then
-                    Modules:getRoot().CFrame =
-                    Modules:getRoot().CFrame +
-                    Modules:getHumanoid().MoveDirection * Settings.WalkSpeedVal
-                elseif Settings.SpeedType == "BHop" then
-                    Modules:getRoot().CFrame =
-                    Modules:getRoot().CFrame +
-                    Modules:getHumanoid().MoveDirection * Settings.WalkSpeedVal
-                    if Modules:getHumanoid().MoveDirection.Magnitude > 0 and Modules:getState() ~= Enum.HumanoidStateType.Freefall then
-                        Modules:getHumanoid().UseJumpPower = false
-                        Modules:changeState(Enum.HumanoidStateType.Jumping)
-                    end
-                elseif Settings.SpeedType == "ChangeSpeed" then
-                    local Multiple = Settings.WalkSpeedVal * Settings.WalkSpeedVal * 60
-                    Modules:ChangeSpeed(Multiple)
-                end
+                Modules:ChangeSpeed(Settings.WalkSpeedVal)
             end
         end)
     end)
-    Threads[4] = Controller:newThread(nil, function()
+    Threads.FulfBiggh = Controller:newThread(nil, function()
         pcall(function()
+            if getgenv().Disable_Connect == nil then
+                Controller:removeThread(Threads.FulfBiggh)
+            end
             if Settings.FullBright then
                 Lighting.Brightness = 2
                 Lighting.ClockTime = 14
@@ -552,53 +715,57 @@ do
             end
         end)
     end)
-    Threads[5] = Controller:newThread(.5, function()
-        if Settings.No_Fog then
-            for _,v in pairs(workspace.Map.Boundaries:GetChildren()) do
-                if v:IsA("Part") then
-                    Modules:FireTouchPart(v)
+    Threads.UnlockFog = Controller:newThread(.5, function()
+        pcall(function()
+            if getgenv().Disable_Connect == nil then
+                Controller:removeThread(Threads.UnlockFog)
+            end
+            if Settings.No_Fog then
+                for _,v in pairs(workspace.Map.Boundaries:GetChildren()) do
+                    if v:IsA("Part") then
+                        Modules:FireTouchPart(v)
+                    end
                 end
             end
-        end
+        end)
     end)
 end
-
-PromptButtonHoldBegan = nil
 local ProximityPromptService = cloneref(game:GetService("ProximityPromptService"))
 do
-    PromptButtonHoldBegan = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+    getgenv().Disable_Connect.PromptButtonHoldBegan = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
         if Settings.InstPrompts and Modules:getCharacter() and fireproximityprompt then
             fireproximityprompt(prompt)
         end
     end)
 end
-local infjp
 do
-    infjp = UserInputService.InputBegan:Connect(function(iobj, gp)
+    getgenv().Disable_Connect.infjp = UserInputService.InputBegan:Connect(function(iobj, gp)
         if not IsOnMobile and not gp and Settings.InfJump then
-            if iobj.KeyCode == Enum.KeyCode.Space and LocalPlayer.Character then
-                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z)
+            pcall(function()
+                if iobj.KeyCode == Enum.KeyCode.Space and LocalPlayer.Character then
+                    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z)
+                    end
                 end
-            end
+            end)
         end
     end)
 end
-local inf_mb
 do
-    inf_mb = UserInputService.JumpRequest:Connect(function()
+    getgenv().Disable_Connect.inf_mb = UserInputService.JumpRequest:Connect(function()
         if IsOnMobile and Settings.InfJump then
-            local hum = Modules:getHumanoid()
-            hum:ChangeState("Seated")
-            wait()
-            hum:ChangeState("Jumping")
+            pcall(function()
+                local hum = Modules:getHumanoid()
+                hum:ChangeState("Seated")
+                wait()
+                hum:ChangeState("Jumping")    
+            end)
         end
     end)
 end
-local ItemsAdded
 spawn(function()
-    ItemsAdded = workspace.Items.ChildAdded:Connect(function(c)
+    getgenv().Disable_Connect.Items = workspace.Items.ChildAdded:Connect(function(c)
         if string.find(c.Name, "Item Chest") and getgenv().Esp_Chest then
             ESP:AddObjectListener(c, {
                 Name = "ChestLid",
@@ -610,21 +777,33 @@ spawn(function()
         end
     end)
 end)
+
+--// hook thing
+-- do
+--     Hooks[1]:namecallHook("", "FireServer")
+-- end
+local index
 local newindex
 do
+    index = hookmetamethod(game, "__index", function(self, i)
+        if i == "WalkSpeed" and Settings.WalkSpeed and index(self, "ClassName") == "Humanoid" and not checkcaller() then
+            return Settings.WalkSpeedOG or 16
+        end
+        return index(self, i)
+    end)
     newindex = hookmetamethod(game, "__newindex", function(self, i, v)
-        if i == "WalkSpeed" and Settings.WalkSpeed and self.ClassName == "Humanoid" and self.Parent == Modules:getCharacter() and not checkcaller() then
+        if i == "WalkSpeed" and Settings.WalkSpeed and self.ClassName == "Humanoid" and not checkcaller() then
+            Settings.WalkSpeedOG = v
             v = Settings.WalkSpeedVal
         end
         return newindex(self, i, v)
     end)
 end
 
-local lastpos
-local antifall
-local PartDestroyHeight = game:GetService("Workspace").FallenPartsDestroyHeight
+local lastpos;
+local PartDestroyHeight = game:GetService("Workspace").FallenPartsDestroyHeight;
 spawn(function()
-    antifall = PreSimulation:Connect(function()
+    getgenv().Disable_Connect.antifall = PreSimulation:Connect(function()
         local Root = Modules:getRoot();
         local Hamnid = Modules:getHumanoid();
 
@@ -641,9 +820,10 @@ spawn(function()
         end
     end)
 end)
+--// noclip --
 local toUndo = {}
 spawn(function()
-    Stepped:Connect(function()
+    getgenv().Disable_Connect.Noclip = Stepped:Connect(function()
         local Char = Modules:getCharacter()
         if Settings.Noclip and Char then
 			for i,v in pairs(Char:GetDescendants()) do
@@ -660,7 +840,7 @@ spawn(function()
 		end
     end)
 end)
---anti afk--
+--// anti afk--
 spawn(function()
     LocalPlayer.Idled:Connect(function()
         VirtualUser:CaptureController()
@@ -670,16 +850,13 @@ end)
 NO_VIRTUALIZE(function()
 	task.spawn(function()
 		while task.wait() do
+            if getgenv().Disable_Connect == nil then break end
 			if setscriptable then
 				setscriptable(LocalPlayer, "SimulationRadius", true)
 			end
 			if sethiddenproperty then
 				sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
                 sethiddenproperty(LocalPlayer, "MaxSimulationRadius", math.huge)
-            else
-                LocalPlayer.setsimulationradius(math.huge);
-                LocalPlayer.MaxSimulationRadius = math.huge;
-                LocalPlayer.SimulationRadius = math.huge;
 			end
 		end
 	end)
@@ -711,7 +888,7 @@ Settings_M = Tabs.Settings:AddSection("Misc") do
         Description = "Very important button",
         Callback = function()
             local suc,fail = pcall(function()
-                cloneref(game:GetService("TeleportService")):TeleportToPlaceInstance(game.PlaceId, tostring(SaveJobId) , LocalPlayer)
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, tostring(SaveJobId) , LocalPlayer)
             end)
             if suc then
                 Fluent:Notify({
@@ -757,13 +934,29 @@ Settings_M = Tabs.Settings:AddSection("Misc") do
     })
 end
 
-local Timer;Timer = Heartbeat:Connect(function()
+getgenv().Disable_Connect.Timer = Heartbeat:Connect(function()
     pcall(function()
         local TimeSinceLastPlay = os.time() - Old
         local hours = tostring(math.floor(TimeSinceLastPlay / 3600))
         local minutes = tostring(math.floor((TimeSinceLastPlay % 3600) / 60))
         local seconds = tostring(TimeSinceLastPlay % 60)
-        Timeing:SetTitle("Server Joined "..hours.." H "..minutes.." M "..seconds.." S ")
+
+        local Campground = workspace.Map.Campground
+        local MainFire = Campground["MainFire"]
+        local MissingKidTracker = Campground["NoticeBoard"]["MissingKidTracker"]
+
+        Timeing:SetTitle("Server Joined "..hours.." H "..minutes.." M "..seconds.." S ");
+
+        Statthing.MotherShip:SetDesc(tostr(workspace:GetAttribute('AlienMothershipCF')));
+        Statthing.IsCultistAttack:SetDesc(tostr(workspace:GetAttribute('CultistAttackDay')));
+        Statthing.Progress:SetDesc("Campfire Level): "..tostr(workspace:GetAttribute('Progress')));
+        Statthing.Fuel_Remaining:SetDesc("Fuel Remaining: ".. tostr(MainFire:GetAttribute('FuelRemaining')))
+        Statthing.Weather:SetDesc(tostr(workspace:GetAttribute('Weather')))
+
+        StatusKid.DinoKid:SetDesc("Is Founded: "..tostr(MissingKidTracker["DinoKid"]:GetAttribute('Found')));
+        StatusKid.KrakenKid:SetDesc("Is Founded: "..tostr(MissingKidTracker["KrakenKid"]:GetAttribute('Found')));
+        StatusKid.SquidKid:SetDesc("Is Founded: "..tostr(MissingKidTracker["SquidKid"]:GetAttribute('Found')));
+        StatusKid.KoalaKid:SetDesc("Is Founded: "..tostr(MissingKidTracker["KoalaKid"]:GetAttribute('Found')));
         Heartbeat:Wait()
     end,print)
 end)
