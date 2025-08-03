@@ -1,3 +1,7 @@
+--[[
+//TODO Add Bring Pelts, Forest Gem, Auto Fil
+]]
+
 -- if getgenv().Syreiy and not _G.DEBUG == true then
 --     return
 -- end
@@ -14,10 +18,11 @@ function missing(t, f, fallback)
 end
 
 cloneref = missing("function", cloneref, function(...) return ... end)
+sethidden = missing("function", sethiddenproperty or set_hidden_property or set_hidden_prop)
+gethidden = missing("function", gethiddenproperty or get_hidden_property or get_hidden_prop)
 firetouchinterest = missing("function", firetouchinterest)
 hookmetamethod = missing("function", hookmetamethod)
 checkcaller = missing("function", checkcaller, function() return false end)
-setthreadidentity = missing("function", setthreadidentity or (syn and syn.set_thread_identity) or syn_context_set or setthreadcontext)
 local LoadingTime = tick();
 local Modules = {};
 Modules.__index = Modules;
@@ -30,21 +35,21 @@ local Settings = {
     No_Fog = false,
     Sefe_Part = false,
     WalkSpeed = false,
-    WalkSpeedVal = .3,
-    SpeedType = "ChangeSpeed",
+    WalkSpeedVal = 16,
     Noclip = false,
     InfJump = false,
     FullBright = false,
     InstPrompts = false,
     ESP = false,
     SetChildren = "Dino Kid",
+    SetPlayer = {},
+    SetSpectatePlr = {},
+    AntiVoid = true,
 }
 
 local RepitationThread = loadstring(game:HttpGet("https://gist.githubusercontent.com/CylciaUwU/ea277c117164f82fb40016246ba6a9ad/raw/eb0502cf8ad85b70a7b24e92227f37e717eb8111/RepitationThread.luau"))();
--- local Hooks = loadstring(game:HttpGet("https://raw.githubusercontent.com/ClassicSenior/Hooks/main/hooks.lua"),true)();
 local Controller = RepitationThread.new();
 local random = math.random;
--- local char = string.char; --// not using for now
 local NO_VIRTUALIZE = (function(...) return ... end);
 
 local ESP = loadstring(game:HttpGet("https://kiriot22.com/releases/ESP.lua"))();
@@ -58,7 +63,6 @@ local Lighting = cloneref(game:GetService("Lighting"));
 local RunService = cloneref(game:GetService("RunService"));
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"));
 local TeleportService = cloneref(game:GetService("TeleportService"))
--- local VirtualInputManager = cloneref(game:GetService("VirtualInputManager"));
 local VirtualUser = cloneref(game:GetService("VirtualUser"));
 local UserInputService = cloneref(game:GetService("UserInputService"));
 
@@ -135,7 +139,7 @@ function Modules:getRoot()
     return self:getCharacter():FindFirstChild("HumanoidRootPart");
 end
 function Modules:getHumanoid()
-    return self:getCharacter():WaitForChild("Humanoid",9e9) or self:getCharacter():FindFirstChildWhichIsA("Humanoid",9e9)
+    return self:getCharacter():FindFirstChild("Humanoid") or self:getCharacter():FindFirstChildWhichIsA("Humanoid")
 end
 function Modules:getState()
     return self:getHumanoid():GetState()
@@ -148,7 +152,7 @@ function Modules:changeState(State)
         return debugwarn("Failed to change state", failed)
     end
 end
-function Modules:Teleport(Position)
+function PleaseConverThis(Position)
     local RealtargetPos = {Position}
 	local targetPos = RealtargetPos[1]
 	local RealTarget
@@ -159,8 +163,11 @@ function Modules:Teleport(Position)
 	elseif type(targetPos) == "number" then
 		RealTarget = CFrame.new(unpack(RealtargetPos))
 	end
-
-    return self:getCharacter():PivotTo(RealTarget)
+    return RealTarget
+end
+function Modules:Teleport(Pos)
+    local Converter = PleaseConverThis(Pos)
+    return self:getCharacter():PivotTo(Converter) --// Vector3 💔
 end
 function Modules:ChangeSpeed(Val)
     if not Val then return end;
@@ -183,16 +190,15 @@ function Modules:FireTouchPart(Part)
         return debugwarn("Missing HumanoidRootPart or firetouchinterest function.")
     end
 end
-function Modules:GetClosestMob()
+function Modules:getClosestMob()
     local dist = Settings.Distance or 1/0
     local closest_mob
 
     for _, v in pairs(workspace.Characters:GetChildren()) do
-        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then --// can't check humanoid by name
+        if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") then
             local Humanoid = v:FindFirstChildWhichIsA("Humanoid")
             if not table.find(Blacklist, v.Name:lower()) and Humanoid.Health > 0 then
                 local Hum = v:FindFirstChild("HumanoidRootPart")
-                -- local DistanceFromTarget = Hum and LocalPlayer:DistanceFromCharacter(Hum.CFrame.Position)
                 local MagI = (Hum and Hum.Position - self:getRoot().Position).Magnitude
 
                 if MagI and MagI <= dist then
@@ -204,37 +210,48 @@ function Modules:GetClosestMob()
     end
     return closest_mob, dist
 end
--- function Modules:GetHitRegisters()local HitRegister=nil;for _,v in ipairs(workspace.Characters:GetChildren())do if v:IsA("Model")and v:FindFirstChild("HumanoidRootPart")then local _HitRegisters=v:FindFirstChild("HitRegisters")local HasAttributes=_HitRegisters:GetAttributes()for index,v2 in next,HasAttributes do if index then HitRegister=index;break end end end end;return HitRegister or"nil"end;function Modules:GetTargetByHitRegister(HitRegister)if not HitRegister then return end;for _,v in ipairs(workspace.Characters:GetChildren())do if v:IsA("Model")and v:FindFirstChild("HumanoidRootPart")then local _HitRegisters=v:FindFirstChild("HitRegisters")local GetAttributes=_HitRegisters:GetAttributes(HitRegister)if GetAttributes and GetAttributes[HitRegister]then return v end end end end;function Modules:GetWeapons()for _,v in pairs(LocalPlayer.Inventory:GetChildren())do if v:IsA("Model")and v:GetAttribute("ToolName")then if v:GetAttribute("ToolName")=="GenericSword"then return v.Name elseif v:GetAttribute("ToolName")=="GenericAxe"then return v.Name end end end end
-function Modules:GetPlayerEquipped()
-    local WhatWeaponIsPlayerEquip = nil;
-    local Character = self:getCharacter()
-
-    for i,v in next, Character:GetAttributes() do
-        if v ~= nil then
-           WhatWeaponIsPlayerEquip = v 
-        end
+function Modules:getPlayerEquipped()
+    local Equipment
+    local Char = self:getCharacter()
+    local Char_Equipped = Char:GetAttribute('Equipped')
+    local getWeaponDamage = Char:FindFirstChildOfClass("Model"):GetAttribute('WeaponDamage')
+    if type(Char_Equipped) == "string" and type(getWeaponDamage) == "number" then
+        Equipment = Char_Equipped
+        return Equipment
     end
-    return WhatWeaponIsPlayerEquip
+    return Equipment
+end
+function Modules:getPlayerEquipped2()
+    local Equipment
+    local Char = self:getCharacter()
+    local Char_Equipped = Char:GetAttribute('Equipped')
+    if type(Char_Equipped) == "string" then
+        Equipment = Char_Equipped
+        return Equipment
+    end
+    return Equipment
 end
 function Modules:KillAura()
-    args = nil;
+    args = {}
+    local Mobs = self:getClosestMob();
+    local LastTool = self:getPlayerEquipped();
 
-    local Mobs, distance = self:GetClosestMob();
-	local Weapons = self:GetPlayerEquipped();
-    if not Weapons and not Mobs then return end
+    if LastTool == nil then return end
 
     local success, failed = pcall(function()
         args = {
             Mobs,
-            LocalPlayer.Inventory:FindFirstChild(Weapons),
+            LocalPlayer.Inventory:FindFirstChild(LastTool),
             "1_" .. LocalPlayer.UserId,
             Mobs.HumanoidRootPart.CFrame
         }
     end)
 
-    if not success then return end
+    if not success and not failed then return end
 
-    return RemoteEventsCaller.ToolDamageObject:InvokeServer(unpack(args));
+    if success then
+        RemoteEventsCaller["ToolDamageObject"]:InvokeServer(unpack(args));
+    end
 end
 function Modules:BringItems(Unit)
     if not Unit then return end;
@@ -277,6 +294,15 @@ local Window = Fluent:CreateWindow({
     Transparency = false,
     MinimizeKey = Enum.KeyCode.RightShift,
 })
+local _PlayerList = {}; do
+    if #Players:GetPlayers() > 1 then
+        for _,v in next, Players:GetPlayers() do
+            if v ~= LocalPlayer then
+                table.insert(_PlayerList, v.Name)
+            end
+        end
+    end
+end
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "component" }),
     Player = Window:AddTab({ Title = "Player", Icon = "user" }),
@@ -287,6 +313,10 @@ local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 local TabMain = Tabs.Main:AddSection("Main") do
+    local Warningtext3 = TabMain:AddParagraph({
+        Title = "That not a glitch",
+        Content = "Chainsaw can't attack mobs",
+    })
     local DistanceKillAuras = TabMain:AddSlider("Slider", {
         Title = "Distance Kill Auras",
         Description = "",
@@ -302,7 +332,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
         Settings.Distance = math.floor(v)
     end)
     DistanceKillAuras:SetValue(25);
-    local AutoKillAura = TabMain:AddToggle("KillAuraletgo", {Title = "Kill Aura", Default = false })
+    local AutoKillAura = TabMain:AddToggle("KillAuraletgo", {Title = "Kill Aura", Description = "Damage is depending on your weapons equipment.", Default = false })
     AutoKillAura:OnChanged(function(v)
         Settings.KillAura = v
     end)
@@ -310,7 +340,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
     FarmTree:OnChanged(function(v)
         Settings.AutoFarmTree = v
     end)
-    local AutoCookedItem = TabMain:AddToggle("AutoCookedItem", {Title = "Auto Cooked Meat", Description = "Steak, Morsel", Default = false })
+    local AutoCookedItem = TabMain:AddToggle("AutoCookedItem", {Title = "Auto Cooked Meat", Description = "(May Lag) Steak, Morsel", Default = false })
     AutoCookedItem:OnChanged(function(v)
         Settings.AutoCookedItem = v
     end)
@@ -349,7 +379,7 @@ local TabMain = Tabs.Main:AddSection("Main") do
             pcall(function()
                 for _,v in pairs(workspace.Items:GetChildren()) do
                     if string.find(v.Name, "Item Chest") then
-                        RemoteEventsCaller.RequestOpenItemChest:FireServer(v)
+                        RemoteEventsCaller["RequestOpenItemChest"]:FireServer(v)
                     end
                 end
             end)
@@ -362,27 +392,51 @@ local TabMain = Tabs.Main:AddSection("Main") do
             pcall(function()
                 for _,v in ipairs(workspace.Items:GetChildren()) do
                     if string.find("coin stack", v.Name:lower()) then
-                        RemoteEventsCaller.RequestCollectCoints:InvokeServer(v)
+                        RemoteEventsCaller["RequestCollectCoints"]:InvokeServer(v)
                     end
                 end
             end)
         end
     })
 end
+viewing = nil;
 local Playertab = Tabs.Player:AddSection("") do
-    -- local ToogleTypeSP = Playertab:AddDropdown("Speed Toggle", {
-    --     Title = "Type WalkSpeed",
-    --     Values = {"ChangeSpeed","CFrame","BHop"},
-    --     Multi = false,
-    --     Default = 1,
-    -- })
-    -- ToogleTypeSP:SetValue("ChangeSpeed")
-    -- ToogleTypeSP:OnChanged(function(v)
-    --     Settings.SpeedType = v
-    --     if v ~= "BHop" then
-    --         Modules:getHumanoid().UseJumpPower = true
-    --     end
-    -- end)
+    if #Players:GetPlayers() > 1 and isDebug then
+        local PlayerList = Playertab:AddDropdown("PlayerList", {
+            Title = "Select Player",
+            Values = _PlayerList,
+            Multi = false,
+            Default = 1,
+        })
+        Options.PlayerList:SetValue(false)
+        PlayerList:OnChanged(function(v)
+            Settings.SetPlayer = v
+            viewing = Players[v]
+        end)
+        Playertab:AddButton({
+            Title = "Teleport to Players",
+            Description = "",
+            Callback = function()
+                pcall(function()
+                    Modules:Teleport(Players[Settings.SetPlayer].Character.HumanoidRootPart.CFrame)
+                end)
+            end
+        })
+        SpectatePlayers = Playertab:AddToggle("SpectatePlr", {Title = "Spectate", Default = false })
+        SpectatePlayers:OnChanged(function(v)
+            Settings.SetSpectatePlr = v
+            repeat task.wait()
+                workspace.CurrentCamera.CameraSubject = viewing.Character
+            until not Settings.SetSpectatePlr or not viewing or not viewing.Character or not viewing.Character:FindFirstChild("HumanoidRootPart")
+            game:GetService("Workspace").Camera.CameraSubject = Modules:getHumanoid()
+        end)
+        Options.SpectatePlr:SetValue(false)
+    else
+        Playertab:AddParagraph({
+            Title = "Disabled Function",
+            Content = "You are the only player in this server. this function will useless, unless debug mode is on <3"
+        })
+    end
     local SetSpeed = Playertab:AddSlider("", {
         Title = "Speed",
         Description = "",
@@ -517,7 +571,7 @@ local MissingChildren = Tabs.MissingChild:AddSection("Missing Child") do
         Settings.SetChildren = v
         if Settings.SetChildren == nil then return end
 
-        -- pcall(function()
+        pcall(function()
             if Settings.SetChildren == "Dino Kid" then
                 Modules:Teleport(MissingKids:GetAttribute('DinoKid'))
             elseif Settings.SetChildren == "Kraken Kid" then
@@ -528,7 +582,7 @@ local MissingChildren = Tabs.MissingChild:AddSection("Missing Child") do
                 Modules:Teleport(MissingKids:GetAttribute('KoalaKid'))
             end
         end)
-    -- end)
+    end)
 
 end
 local Bringtarr = Tabs.Bring:AddSection("Bring") do
@@ -590,6 +644,10 @@ local Bringtarr = Tabs.Bring:AddSection("Bring") do
             end)
         end
     })
+    local Warningtext2 = Bringtarr:AddParagraph({
+        Title = "Distance-Check",
+        Content = "Not Bring items that are too close to players (50 studs)",
+    })
     Bringtarr:AddButton({
         Title = "Bring Tool Type",
         Description = "",
@@ -649,20 +707,20 @@ do
                 Controller:removeThread(Threads.Aura)
             end
             if Settings.KillAura then
-               Modules:KillAura()
+                Modules:KillAura()
             end
         end)
     end)
-    Threads.Meat = Controller:newThread(nil, function()
+    Threads.Meat = Controller:newThread(.5, function()
         pcall(function()
             if getgenv().Disable_Connect == nil then
                 Controller:removeThread(Threads.Meat)
             end
             if Settings.AutoCookedItem then
-                for _,v in pairs(workspace.Items:GetChildren()) do
+                for _,v in pairs(workspace.Items:GetChildren()) do --// TODO fix lag issue
                     local getCookable = v:GetAttribute('Cookable') == true
                     if getCookable then
-                        RemoteEventsCaller.RequestCookItem:FireServer(workspace.Map.Campground.MainFire, v)
+                        RemoteEventsCaller["RequestCookItem"]:FireServer(workspace.Map.Campground.MainFire, v)
                     end
                 end
             end
@@ -678,11 +736,11 @@ do
                     if string.find(v.Name:lower(), "small tree") then
                         local args = {
                             v,
-                            LocalPlayer.Inventory:FindFirstChild(Modules:GetPlayerEquipped()),
+                            LocalPlayer.Inventory:FindFirstChild(Modules:getPlayerEquipped2()),
                             "1",
                             CFrame.new()
                         }
-                        RemoteEventsCaller.ToolDamageObject:InvokeServer(unpack(args))
+                        RemoteEventsCaller["ToolDamageObject"]:InvokeServer(unpack(args))
                     end
                 end
             end
@@ -778,25 +836,13 @@ spawn(function()
     end)
 end)
 
---// hook thing
--- do
---     Hooks[1]:namecallHook("", "FireServer")
--- end
 local index
-local newindex
 do
     index = hookmetamethod(game, "__index", function(self, i)
         if i == "WalkSpeed" and Settings.WalkSpeed and index(self, "ClassName") == "Humanoid" and not checkcaller() then
-            return Settings.WalkSpeedOG or 16
+            return Settings.WalkSpeedVal
         end
         return index(self, i)
-    end)
-    newindex = hookmetamethod(game, "__newindex", function(self, i, v)
-        if i == "WalkSpeed" and Settings.WalkSpeed and self.ClassName == "Humanoid" and not checkcaller() then
-            Settings.WalkSpeedOG = v
-            v = Settings.WalkSpeedVal
-        end
-        return newindex(self, i, v)
     end)
 end
 
@@ -808,7 +854,7 @@ spawn(function()
         local Hamnid = Modules:getHumanoid();
 
         lastpos = Hamnid.FloorMaterial ~= Enum.Material.Air and Root.Position or lastpos
-        if (Root.Position.Y + (Root.Velocity.Y * 0.016)) <= (PartDestroyHeight + 10) then
+        if Settings.AntiVoid and (Root.Position.Y + (Root.Velocity.Y * 0.016)) <= (PartDestroyHeight + 10) then
             lastpos = lastpos or Vector3.new(Root.Position.X, (PartDestroyHeight + 20), Root.Position.Z)
             Root.CFrame += (lastpos - Root.Position)
             Root.Velocity *= Vector3.new(1, 0, 1)
@@ -854,10 +900,8 @@ NO_VIRTUALIZE(function()
 			if setscriptable then
 				setscriptable(LocalPlayer, "SimulationRadius", true)
 			end
-			if sethiddenproperty then
-				sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
-                sethiddenproperty(LocalPlayer, "MaxSimulationRadius", math.huge)
-			end
+            sethidden(LocalPlayer, "SimulationRadius", math.huge)
+            sethidden(LocalPlayer, "MaxSimulationRadius", math.huge)
 		end
 	end)
 end)()
@@ -867,63 +911,15 @@ Settings_M = Tabs.Settings:AddSection("Misc") do
     Timeing = Settings_M:AddParagraph({
         Title = "Timeing Server"
     })
-    ServerJobs = Settings_M:AddParagraph({        
-        Title = "Your JobId " .. tostring(game.JobId)
-    })
-    local EnteredJobid = Settings_M:AddInput("Input", {
-        Title = "Enter JobId",
-        Default = "Job Id ?",
-        Placeholder = "",
-        Numeric = false, -- Only allows numbers
-        Finished = false, -- Only calls callback when you press enter
-        Callback = function(v)
-            SaveJobId = v
-        end
-    })
-    EnteredJobid:OnChanged(function(v)
-        SaveJobId = v
+    local ANtiVoid = Settings_M:AddToggle("Void", {Title = "Anti-Void", Default = true})
+    ANtiVoid:OnChanged(function(v)
+        Settings.AntiVoid = v
     end)
-    Settings_M:AddButton({
-        Title = "Join Server",
-        Description = "Very important button",
-        Callback = function()
-            local suc,fail = pcall(function()
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, tostring(SaveJobId) , LocalPlayer)
-            end)
-            if suc then
-                Fluent:Notify({
-                    Title = "Success.",
-                    Content = "Teleporting Please wait",
-                    Duration = 8
-                })
-            end
-            if fail then
-                Fluent:Notify({
-                    Title = "Failed to Teleport.",
-                    Content = "make sure to enter not just click",
-                    Duration = 8
-                })
-            end
-        end
-    })
-    Settings_M:AddButton({
-    Title = "Copy Your Job Id",
-    Callback = function()
-        setclipboard(tostring(game.JobId))
-        wait()
-        Fluent:Notify({
-            Title = "setclipboard",
-            Content = "Copyed Job Id",
-            Duration = 3
-        })
-    end
-    })
     Settings_M:AddButton({
         Title = "Rejoin Server",
         Description = "Click to Rejoin",
         Callback = function()
-            local TeleportService = cloneref(game:GetService("TeleportService"))
-            if #game:GetService("Players"):GetPlayers() <= 1 then
+            if #Players:GetPlayers() <= 1 then
                 LocalPlayer:Kick("\nRejoining...")
                 wait()
                 TeleportService:Teleport(game.PlaceId, LocalPlayer)
@@ -937,9 +933,9 @@ end
 getgenv().Disable_Connect.Timer = Heartbeat:Connect(function()
     pcall(function()
         local TimeSinceLastPlay = os.time() - Old
-        local hours = tostring(math.floor(TimeSinceLastPlay / 3600))
-        local minutes = tostring(math.floor((TimeSinceLastPlay % 3600) / 60))
-        local seconds = tostring(TimeSinceLastPlay % 60)
+        local hours = tostr(math.floor(TimeSinceLastPlay / 3600))
+        local minutes = tostr(math.floor((TimeSinceLastPlay % 3600) / 60))
+        local seconds = tostr(TimeSinceLastPlay % 60)
 
         local Campground = workspace.Map.Campground
         local MainFire = Campground["MainFire"]
