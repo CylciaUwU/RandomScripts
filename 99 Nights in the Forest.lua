@@ -42,7 +42,7 @@ local Settings = {
     InstPrompts = false,
     ESP = false,
     SetChildren = "Dino Kid",
-    SetPlayer = {},
+    -- SetPlayer = {},
     SetSpectatePlr = {},
     AntiVoid = true,
 }
@@ -410,7 +410,7 @@ local Playertab = Tabs.Player:AddSection("") do
         })
         Options.PlayerList:SetValue(false)
         PlayerList:OnChanged(function(v)
-            Settings.SetPlayer = v
+            -- Settings.SetPlayer = v
             viewing = Players[v]
         end)
         Playertab:AddButton({
@@ -418,7 +418,7 @@ local Playertab = Tabs.Player:AddSection("") do
             Description = "",
             Callback = function()
                 pcall(function()
-                    Modules:Teleport(Players[Settings.SetPlayer].Character.HumanoidRootPart.CFrame)
+                    Modules:Teleport(Players[viewing].Character.HumanoidRootPart.CFrame)
                 end)
             end
         })
@@ -426,8 +426,10 @@ local Playertab = Tabs.Player:AddSection("") do
         SpectatePlayers:OnChanged(function(v)
             Settings.SetSpectatePlr = v
             repeat task.wait()
-                workspace.CurrentCamera.CameraSubject = viewing.Character
-            until not Settings.SetSpectatePlr or not viewing or not viewing.Character or not viewing.Character:FindFirstChild("HumanoidRootPart")
+                pcall(function()
+                    workspace.CurrentCamera.CameraSubject = viewing.Character
+                end)
+            until not Settings.SetSpectatePlr or not viewing or not viewing.Character or not viewing.Character:FindFirstChildWhichIsA("Humanoid")
             game:GetService("Workspace").Camera.CameraSubject = Modules:getHumanoid()
         end)
         Options.SpectatePlr:SetValue(false)
